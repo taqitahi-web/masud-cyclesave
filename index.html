@@ -4,17 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Masud সাইকেল সাশ্রয় ড্যাশবোর্ড | CycleSave</title>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a2f2f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CycleSave">
+    <script>
+      (function(){
+        const manifestData = {
+          name: "Masud সাইকেল সাশ্রয় ড্যাশবোর্ড",
+          short_name: "CycleSave",
+          description: "সাইকেল সাশ্রয় ট্র্যাকার",
+          start_url: "/masud-cyclesave/",
+          display: "standalone",
+          background_color: "#0a2f2f",
+          theme_color: "#0a2f2f",
+          orientation: "portrait",
+          icons: [
+            { src: "https://img.icons8.com/emoji/96/bicycle-emoji.png", sizes: "96x96", type: "image/png" },
+            { src: "https://img.icons8.com/emoji/192/bicycle-emoji.png", sizes: "192x192", type: "image/png" },
+            { src: "https://img.icons8.com/emoji/512/bicycle-emoji.png", sizes: "512x512", type: "image/png" }
+          ]
+        };
+        const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.currentScript.after(link);
+      })();
+    </script>
     <meta name="description" content="সাইকেল সাশ্রয় ট্র্যাকার - জ্বালানি সংকটে সবুজ যাত্রা">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <!-- Firebase SDK with Firestore + Storage -->
+    <!-- Firebase SDK with Firestore only (ছবি base64 হিসেবে Firestore-এ) -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
       import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-      import { getStorage, ref, uploadString, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCCjpIIy97SX1jZg8_PTl-IUMCrIaKEZI4",
@@ -27,9 +54,8 @@
 
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
-      const storage = getStorage(app);
 
-      // ✅ Firestore-এ entries সেভ
+      // ✅ Entries সেভ
       window.saveEntriesToFirebase = async function(entries) {
         try {
           const colRef = collection(db, "entries");
@@ -38,96 +64,89 @@
           }
           document.getElementById('syncStatus').innerText = "☁️ Firebase সিংক সম্পন্ন ✅";
         } catch(e) {
-          console.error("Firebase save error:", e);
-          document.getElementById('syncStatus').innerText = "❌ Firebase সিংক ব্যর্থ: " + e.message;
+          document.getElementById('syncStatus').innerText = "❌ সিংক ব্যর্থ: " + e.message;
         }
       };
 
-      // ✅ Firestore থেকে entries লোড
+      // ✅ Entries লোড
       window.loadEntriesFromFirebase = async function() {
         try {
-          const colRef = collection(db, "entries");
-          const snapshot = await getDocs(colRef);
-          const firebaseEntries = [];
-          snapshot.forEach(d => firebaseEntries.push(d.data()));
-          return firebaseEntries;
-        } catch(e) {
-          console.error("Firebase load error:", e);
-          return null;
-        }
+          const snapshot = await getDocs(collection(db, "entries"));
+          const list = [];
+          snapshot.forEach(d => list.push(d.data()));
+          return list;
+        } catch(e) { return null; }
       };
 
-      // ✅ Firebase Storage-এ ছবি আপলোড
+      // ✅ ছবি Firestore-এ base64 হিসেবে সেভ (Storage লাগবে না)
       window.uploadImageToFirebase = async function(imageData) {
         try {
-          document.getElementById('syncStatus').innerText = "🔄 ছবি ক্লাউডে আপলোড হচ্ছে...";
-          const storageRef = ref(storage, 'gallery/' + imageData.id);
-          await uploadString(storageRef, imageData.dataUrl, 'data_url');
-          const downloadURL = await getDownloadURL(storageRef);
-          // Firestore-এ ছবির মেটাডাটা সেভ
+          document.getElementById('syncStatus').innerText = "🔄 ছবি ক্লাউডে সেভ হচ্ছে...";
+          // ছবি compress করো (max 800px, quality 0.7)
+          const compressed = await compressImage(imageData.dataUrl, 800, 0.7);
           await setDoc(doc(db, "gallery", imageData.id), {
             id: imageData.id,
             name: imageData.name,
-            url: downloadURL,
+            dataUrl: compressed,
             date: imageData.date
           });
           document.getElementById('syncStatus').innerText = "☁️ ছবি ক্লাউডে সেভ হয়েছে ✅";
-          return downloadURL;
+          return compressed;
         } catch(e) {
-          console.error("Image upload error:", e);
-          document.getElementById('syncStatus').innerText = "❌ ছবি আপলোড ব্যর্থ: " + e.message;
+          document.getElementById('syncStatus').innerText = "❌ ছবি সেভ ব্যর্থ: " + e.message;
           return null;
         }
       };
 
-      // ✅ Firebase থেকে গ্যালারি লোড
+      // ✅ ছবি compress helper
+      async function compressImage(dataUrl, maxWidth, quality) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if(w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = dataUrl;
+        });
+      }
+
+      // ✅ গ্যালারি লোড
       window.loadGalleryFromFirebase = async function() {
         try {
           const snapshot = await getDocs(collection(db, "gallery"));
-          const imgs = [];
-          snapshot.forEach(d => imgs.push(d.data()));
-          return imgs;
-        } catch(e) {
-          console.error("Gallery load error:", e);
-          return null;
-        }
+          const list = [];
+          snapshot.forEach(d => list.push(d.data()));
+          return list;
+        } catch(e) { return null; }
       };
 
-      // ✅ Firebase থেকে ছবি ডিলিট
+      // ✅ ছবি ডিলিট
       window.deleteImageFromFirebase = async function(id) {
         try {
           await deleteDoc(doc(db, "gallery", id));
-          const storageRef = ref(storage, 'gallery/' + id);
-          await deleteObject(storageRef);
-        } catch(e) {
-          console.error("Delete error:", e);
-        }
+          document.getElementById('syncStatus').innerText = "🗑️ ছবি ক্লাউড থেকে ডিলিট হয়েছে";
+        } catch(e) { console.error("Delete error:", e); }
       };
 
-      // ✅ পেজ লোডে Firebase থেকে সব ডাটা আনো
+      // ✅ পেজ লোডে সব ডাটা আনো
       window.addEventListener('load', async () => {
-        document.getElementById('syncStatus').innerText = "🔄 Firebase থেকে ডাটা লোড হচ্ছে...";
-
-        // Entries লোড
+        document.getElementById('syncStatus').innerText = "🔄 Firebase থেকে লোড হচ্ছে...";
         const fbEntries = await window.loadEntriesFromFirebase();
         if(fbEntries && fbEntries.length > 0) {
           localStorage.setItem('masud_cycle_entries', JSON.stringify(fbEntries));
-          if(typeof window.__reloadFromFirebase === 'function') {
-            window.__reloadFromFirebase(fbEntries);
-          }
+          if(typeof window.__reloadFromFirebase === 'function') window.__reloadFromFirebase(fbEntries);
         }
-
-        // Gallery লোড
         const fbGallery = await window.loadGalleryFromFirebase();
         if(fbGallery && fbGallery.length > 0) {
-          if(typeof window.__reloadGalleryFromFirebase === 'function') {
-            window.__reloadGalleryFromFirebase(fbGallery);
-          }
+          if(typeof window.__reloadGalleryFromFirebase === 'function') window.__reloadGalleryFromFirebase(fbGallery);
         }
-
-        const entryCount = fbEntries ? fbEntries.length : 0;
-        const imgCount = fbGallery ? fbGallery.length : 0;
-        document.getElementById('syncStatus').innerText = "☁️ Firebase: " + entryCount + "টি এন্ট্রি, " + imgCount + "টি ছবি লোড হয়েছে ✅";
+        const e = fbEntries ? fbEntries.length : 0;
+        const g = fbGallery ? fbGallery.length : 0;
+        document.getElementById('syncStatus').innerText = "☁️ Firebase: " + e + "টি এন্ট্রি, " + g + "টি ছবি লোড ✅";
       });
     </script>
     <style>
@@ -858,7 +877,15 @@
 </script>
 <script>
     if('serviceWorker' in navigator){
-        navigator.serviceWorker.register('/sw.js').catch(err=>console.log("PWA Service Worker not registered",err));
+        const swCode = `
+            const CACHE='cyclesave-v1';
+            self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/masud-cyclesave/']))));
+            self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+        `;
+        const blob = new Blob([swCode], {type:'application/javascript'});
+        navigator.serviceWorker.register(URL.createObjectURL(blob), {scope:'/masud-cyclesave/'})
+            .then(()=>console.log('PWA ready'))
+            .catch(err=>console.log('SW error:',err));
     }
 </script>
 </body>
