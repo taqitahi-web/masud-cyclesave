@@ -15,7 +15,7 @@
           name: "Masud সাইকেল সাশ্রয় ড্যাশবোর্ড",
           short_name: "CycleSave",
           description: "সাইকেল সাশ্রয় ট্র্যাকার",
-          start_url: "/masud-cyclesave/",
+          start_url: ".",
           display: "standalone",
           background_color: "#0a2f2f",
           theme_color: "#0a2f2f",
@@ -525,7 +525,7 @@
     </div>
     
     <footer style="text-align:center; margin-top:20px; color:#8aaec0; padding:16px;">
-        ⚡ PWA রেডি | Firebase Sync (কনফিগ করলেই হবে) | develop by M a s u d S h a h<br>
+        ⚡ PWA রেডি | Firebase Sync সক্রিয় ✅ | develop by M a s u d S h a h<br>
         <span id="syncStatus">💾 লোকাল স্টোরেজ মোড (ছবি ও ডাটা সেভ আছে)</span>
     </footer>
 </div>
@@ -879,11 +879,11 @@
     if('serviceWorker' in navigator){
         const swCode = `
             const CACHE='cyclesave-v1';
-            self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/masud-cyclesave/']))));
+            self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(['.']))));
             self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
         `;
         const blob = new Blob([swCode], {type:'application/javascript'});
-        navigator.serviceWorker.register(URL.createObjectURL(blob), {scope:'/masud-cyclesave/'})
+        navigator.serviceWorker.register(URL.createObjectURL(blob))
             .then(()=>console.log('PWA ready'))
             .catch(err=>console.log('SW error:',err));
     }
