@@ -10,10 +10,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <!-- Firebase SDK with Firestore -->
+    <!-- Firebase SDK with Firestore + Storage -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-      import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+      import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+      import { getStorage, ref, uploadString, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCCjpIIy97SX1jZg8_PTl-IUMCrIaKEZI4",
@@ -26,8 +27,9 @@
 
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
+      const storage = getStorage(app);
 
-      // Firestore-এ entries সেভ
+      // ✅ Firestore-এ entries সেভ
       window.saveEntriesToFirebase = async function(entries) {
         try {
           const colRef = collection(db, "entries");
@@ -41,7 +43,7 @@
         }
       };
 
-      // Firestore থেকে entries লোড
+      // ✅ Firestore থেকে entries লোড
       window.loadEntriesFromFirebase = async function() {
         try {
           const colRef = collection(db, "entries");
@@ -55,19 +57,77 @@
         }
       };
 
-      // পেজ লোডে Firebase থেকে ডাটা আনো
+      // ✅ Firebase Storage-এ ছবি আপলোড
+      window.uploadImageToFirebase = async function(imageData) {
+        try {
+          document.getElementById('syncStatus').innerText = "🔄 ছবি ক্লাউডে আপলোড হচ্ছে...";
+          const storageRef = ref(storage, 'gallery/' + imageData.id);
+          await uploadString(storageRef, imageData.dataUrl, 'data_url');
+          const downloadURL = await getDownloadURL(storageRef);
+          // Firestore-এ ছবির মেটাডাটা সেভ
+          await setDoc(doc(db, "gallery", imageData.id), {
+            id: imageData.id,
+            name: imageData.name,
+            url: downloadURL,
+            date: imageData.date
+          });
+          document.getElementById('syncStatus').innerText = "☁️ ছবি ক্লাউডে সেভ হয়েছে ✅";
+          return downloadURL;
+        } catch(e) {
+          console.error("Image upload error:", e);
+          document.getElementById('syncStatus').innerText = "❌ ছবি আপলোড ব্যর্থ: " + e.message;
+          return null;
+        }
+      };
+
+      // ✅ Firebase থেকে গ্যালারি লোড
+      window.loadGalleryFromFirebase = async function() {
+        try {
+          const snapshot = await getDocs(collection(db, "gallery"));
+          const imgs = [];
+          snapshot.forEach(d => imgs.push(d.data()));
+          return imgs;
+        } catch(e) {
+          console.error("Gallery load error:", e);
+          return null;
+        }
+      };
+
+      // ✅ Firebase থেকে ছবি ডিলিট
+      window.deleteImageFromFirebase = async function(id) {
+        try {
+          await deleteDoc(doc(db, "gallery", id));
+          const storageRef = ref(storage, 'gallery/' + id);
+          await deleteObject(storageRef);
+        } catch(e) {
+          console.error("Delete error:", e);
+        }
+      };
+
+      // ✅ পেজ লোডে Firebase থেকে সব ডাটা আনো
       window.addEventListener('load', async () => {
         document.getElementById('syncStatus').innerText = "🔄 Firebase থেকে ডাটা লোড হচ্ছে...";
+
+        // Entries লোড
         const fbEntries = await window.loadEntriesFromFirebase();
         if(fbEntries && fbEntries.length > 0) {
           localStorage.setItem('masud_cycle_entries', JSON.stringify(fbEntries));
           if(typeof window.__reloadFromFirebase === 'function') {
             window.__reloadFromFirebase(fbEntries);
           }
-          document.getElementById('syncStatus').innerText = "☁️ Firebase থেকে " + fbEntries.length + "টি এন্ট্রি লোড হয়েছে ✅";
-        } else {
-          document.getElementById('syncStatus').innerText = "💾 লোকাল মোড (Firebase এ কোনো ডাটা নেই)";
         }
+
+        // Gallery লোড
+        const fbGallery = await window.loadGalleryFromFirebase();
+        if(fbGallery && fbGallery.length > 0) {
+          if(typeof window.__reloadGalleryFromFirebase === 'function') {
+            window.__reloadGalleryFromFirebase(fbGallery);
+          }
+        }
+
+        const entryCount = fbEntries ? fbEntries.length : 0;
+        const imgCount = fbGallery ? fbGallery.length : 0;
+        document.getElementById('syncStatus').innerText = "☁️ Firebase: " + entryCount + "টি এন্ট্রি, " + imgCount + "টি ছবি লোড হয়েছে ✅";
       });
     </script>
     <style>
@@ -496,24 +556,33 @@
         updateAllUI();
     };
     
-    // ---------- Gallery (LocalStorage based) ----------
+    // ---------- Gallery (Firebase Storage based) ----------
     let galleryImages = [];
     
     function loadGalleryFromLocal() {
         const stored = localStorage.getItem('masud_gallery_fixed');
         if(stored) {
-            try {
-                galleryImages = JSON.parse(stored);
-            } catch(e) { galleryImages = []; }
-        } else {
-            galleryImages = [];
-        }
+            try { galleryImages = JSON.parse(stored); } catch(e) { galleryImages = []; }
+        } else { galleryImages = []; }
         renderGallery();
     }
     
     function saveGalleryToLocal() { 
         localStorage.setItem('masud_gallery_fixed', JSON.stringify(galleryImages));
     }
+
+    // Firebase থেকে গ্যালারি রিলোড
+    window.__reloadGalleryFromFirebase = function(fbGallery) {
+        // Firebase gallery items have 'url' instead of 'dataUrl'
+        galleryImages = fbGallery.map(img => ({
+            id: img.id,
+            name: img.name,
+            dataUrl: img.url,  // Firebase download URL ব্যবহার করো
+            date: img.date,
+            fromFirebase: true
+        }));
+        renderGallery();
+    };
     
     function addImageToGallery(file) {
         return new Promise((resolve, reject) => {
@@ -522,13 +591,11 @@
                 reject(new Error("Gallery limit reached"));
                 return;
             }
-            
             if (!file.type.startsWith('image/')) {
                 alert("শুধু ছবি ফাইল আপলোড করুন (JPG, PNG, GIF)");
                 reject(new Error("Invalid file type"));
                 return;
             }
-            
             if (file.size > 5 * 1024 * 1024) {
                 alert("ছবির সাইজ 5MB এর কম হতে হবে");
                 reject(new Error("File too large"));
@@ -536,7 +603,7 @@
             }
             
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 const imageData = {
                     id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
                     dataUrl: e.target.result,
@@ -544,13 +611,20 @@
                     size: file.size,
                     date: new Date().toISOString()
                 };
+                // Firebase-এ আপলোড করো
+                if(typeof window.uploadImageToFirebase === 'function') {
+                    const downloadURL = await window.uploadImageToFirebase(imageData);
+                    if(downloadURL) {
+                        imageData.dataUrl = downloadURL; // Firebase URL দিয়ে রিপ্লেস করো
+                        imageData.fromFirebase = true;
+                    }
+                }
                 galleryImages.push(imageData);
                 saveGalleryToLocal();
                 renderGallery();
                 resolve();
             };
             reader.onerror = (err) => {
-                console.error("FileReader error:", err);
                 alert("ছবি পড়তে সমস্যা হয়েছে, আবার চেষ্টা করুন");
                 reject(err);
             };
@@ -562,6 +636,10 @@
         galleryImages = galleryImages.filter(img => img.id != id);
         saveGalleryToLocal();
         renderGallery();
+        // Firebase থেকেও ডিলিট করো
+        if(typeof window.deleteImageFromFirebase === 'function') {
+            window.deleteImageFromFirebase(id);
+        }
     }
     
     function renderGallery() {
@@ -586,9 +664,7 @@
     }
     
     window.deleteImageFunc = (id) => { 
-        if(confirm("ছবিটি ডিলিট করতে চান?")) {
-            deleteImage(id);
-        }
+        showPinForDelete(id);
     };
     
     // ---------- Core Stats ----------
@@ -665,17 +741,26 @@
     
     // Pin Modal Functions
     const pinModal = document.getElementById('pinModal');
-    function showPinModal(entryData) { pendingEntry=entryData; document.getElementById('pinInput').value=''; pinModal.classList.add('active'); }
-    function hidePinModal() { pinModal.classList.remove('active'); pendingEntry=null; }
+    let pendingAction = null;
+    let pendingImageFile = null;
+    let pendingDeleteId = null;
+
+    function showPinModal(entryData) { pendingEntry=entryData; pendingAction='addEntry'; document.getElementById('pinInput').value=''; pinModal.classList.add('active'); }
+    function showPinForUpload(file) { pendingImageFile=file; pendingAction='uploadImage'; document.getElementById('pinInput').value=''; pinModal.classList.add('active'); }
+    function showPinForDelete(id) { pendingDeleteId=id; pendingAction='deleteImage'; document.getElementById('pinInput').value=''; pinModal.classList.add('active'); }
+    function hidePinModal() { pinModal.classList.remove('active'); pendingEntry=null; pendingAction=null; pendingImageFile=null; pendingDeleteId=null; }
+
     function verifyAndAddEntry() {
-        if(!pendingEntry) return;
-        if(document.getElementById('pinInput').value === CORRECT_PIN) {
+        const enteredPin = document.getElementById('pinInput').value;
+        if(enteredPin !== CORRECT_PIN) { alert("❌ ভুল পিন! আবার চেষ্টা করুন।"); hidePinModal(); return; }
+
+        if(pendingAction === 'addEntry') {
+            if(!pendingEntry) return;
             const {dateVal,savingVal,maintVal}=pendingEntry;
             const existingIndex = entries.findIndex(e=>e.date===dateVal);
             if(existingIndex!==-1) { entries[existingIndex].saving+=savingVal; entries[existingIndex].maintenance+=maintVal; }
             else entries.push({date:dateVal, saving:savingVal, maintenance:maintVal});
             updateAllUI();
-            // Auto Firebase sync
             if(typeof window.saveEntriesToFirebase === 'function') {
                 syncStatusSpan.innerText = "🔄 Firebase-এ সেভ হচ্ছে...";
                 window.saveEntriesToFirebase(entries);
@@ -683,7 +768,22 @@
             hidePinModal();
             document.getElementById('dailySaveAmount').value=120;
             document.getElementById('maintenanceCost').value=0;
-        } else { alert("❌ ভুল পিন! আবার চেষ্টা করুন।"); hidePinModal(); }
+
+        } else if(pendingAction === 'uploadImage') {
+            const file = pendingImageFile;
+            hidePinModal();
+            addImageToGallery(file).catch(err => console.error("Upload error:", err));
+
+        } else if(pendingAction === 'deleteImage') {
+            const id = pendingDeleteId;
+            hidePinModal();
+            galleryImages = galleryImages.filter(img => img.id != id);
+            saveGalleryToLocal();
+            renderGallery();
+            if(typeof window.deleteImageFromFirebase === 'function') {
+                window.deleteImageFromFirebase(id);
+            }
+        }
     }
     
     function addEntryWithPin() {
@@ -742,11 +842,7 @@
         fileInput.onchange = (e) => {
             if(e.target.files && e.target.files[0]) {
                 const file = e.target.files[0];
-                addImageToGallery(file).then(() => {
-                    console.log("Image uploaded successfully");
-                }).catch(err => {
-                    console.error("Upload error:", err);
-                });
+                showPinForUpload(file);
                 fileInput.value = '';
             }
         };
