@@ -10,6 +10,66 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Firebase SDK with Firestore -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+      import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCCjpIIy97SX1jZg8_PTl-IUMCrIaKEZI4",
+        authDomain: "masud-cyclesave.firebaseapp.com",
+        projectId: "masud-cyclesave",
+        storageBucket: "masud-cyclesave.firebasestorage.app",
+        messagingSenderId: "731040057489",
+        appId: "1:731040057489:web:abbb3ef2639868a0acd730"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // Firestore-এ entries সেভ
+      window.saveEntriesToFirebase = async function(entries) {
+        try {
+          const colRef = collection(db, "entries");
+          for(const entry of entries) {
+            await setDoc(doc(colRef, entry.date), entry);
+          }
+          document.getElementById('syncStatus').innerText = "☁️ Firebase সিংক সম্পন্ন ✅";
+        } catch(e) {
+          console.error("Firebase save error:", e);
+          document.getElementById('syncStatus').innerText = "❌ Firebase সিংক ব্যর্থ: " + e.message;
+        }
+      };
+
+      // Firestore থেকে entries লোড
+      window.loadEntriesFromFirebase = async function() {
+        try {
+          const colRef = collection(db, "entries");
+          const snapshot = await getDocs(colRef);
+          const firebaseEntries = [];
+          snapshot.forEach(d => firebaseEntries.push(d.data()));
+          return firebaseEntries;
+        } catch(e) {
+          console.error("Firebase load error:", e);
+          return null;
+        }
+      };
+
+      // পেজ লোডে Firebase থেকে ডাটা আনো
+      window.addEventListener('load', async () => {
+        document.getElementById('syncStatus').innerText = "🔄 Firebase থেকে ডাটা লোড হচ্ছে...";
+        const fbEntries = await window.loadEntriesFromFirebase();
+        if(fbEntries && fbEntries.length > 0) {
+          localStorage.setItem('masud_cycle_entries', JSON.stringify(fbEntries));
+          if(typeof window.__reloadFromFirebase === 'function') {
+            window.__reloadFromFirebase(fbEntries);
+          }
+          document.getElementById('syncStatus').innerText = "☁️ Firebase থেকে " + fbEntries.length + "টি এন্ট্রি লোড হয়েছে ✅";
+        } else {
+          document.getElementById('syncStatus').innerText = "💾 লোকাল মোড (Firebase এ কোনো ডাটা নেই)";
+        }
+      });
+    </script>
     <style>
         * {
             margin: 0;
@@ -429,6 +489,12 @@
     // ---------- LocalStorage for entries ----------
     function saveEntriesToLocal() { localStorage.setItem('masud_cycle_entries', JSON.stringify(entries)); }
     function loadEntriesFromLocal() { const stored = localStorage.getItem('masud_cycle_entries'); entries = stored ? JSON.parse(stored) : []; }
+
+    // Firebase থেকে ডাটা রিলোড
+    window.__reloadFromFirebase = function(fbEntries) {
+        entries = fbEntries;
+        updateAllUI();
+    };
     
     // ---------- Gallery (LocalStorage based) ----------
     let galleryImages = [];
@@ -609,10 +675,15 @@
             if(existingIndex!==-1) { entries[existingIndex].saving+=savingVal; entries[existingIndex].maintenance+=maintVal; }
             else entries.push({date:dateVal, saving:savingVal, maintenance:maintVal});
             updateAllUI();
+            // Auto Firebase sync
+            if(typeof window.saveEntriesToFirebase === 'function') {
+                syncStatusSpan.innerText = "🔄 Firebase-এ সেভ হচ্ছে...";
+                window.saveEntriesToFirebase(entries);
+            }
             hidePinModal();
             document.getElementById('dailySaveAmount').value=120;
             document.getElementById('maintenanceCost').value=0;
-        } else { alert("❌ ভুল পিন! পিন: 0796"); hidePinModal(); }
+        } else { alert("❌ ভুল পিন! আবার চেষ্টা করুন।"); hidePinModal(); }
     }
     
     function addEntryWithPin() {
@@ -624,8 +695,12 @@
     }
     
     async function syncToFirebase() {
-        alert("📌 Firebase কনফিগার করা হয়নি। Firebase Console থেকে config এনে firebaseConfig সেট করুন।\nবর্তমানে লোকাল স্টোরেজে ডাটা সংরক্ষিত আছে।");
-        syncStatusSpan.innerText = "☁️ Firebase কনফিগ প্রয়োজন";
+        if(typeof window.saveEntriesToFirebase === 'function') {
+            syncStatusSpan.innerText = "🔄 Firebase-এ সিংক হচ্ছে...";
+            await window.saveEntriesToFirebase(entries);
+        } else {
+            syncStatusSpan.innerText = "⏳ Firebase লোড হচ্ছে, একটু অপেক্ষা করুন...";
+        }
     }
     
     // থিম ফাংশন
