@@ -378,6 +378,21 @@
             .stat-value { font-size: 1.8rem; }
             .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
         }
+        /* Notes styles */
+        .active-tab { background: rgba(0,242,192,0.25) !important; border-color: #00f2c0 !important; }
+        .note-card { background: rgba(0,0,0,0.25); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; border-left: 3px solid #00f2c0; position: relative; }
+        .note-card.type-todo { border-left-color: #ffd98c; }
+        .note-card.type-reminder { border-left-color: #ff9aef; }
+        .note-card-title { color: #eef5ff; font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+        .note-card-body { color: #aac8d8; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+        .note-card-meta { color: #668899; font-size: 11px; margin-top: 6px; }
+        .note-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+        .note-action-btn { background: rgba(255,255,255,0.1); border: none; border-radius: 8px; padding: 4px 8px; color: white; cursor: pointer; font-size: 12px; }
+        .todo-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .todo-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: #00f2c0; }
+        .todo-item.done span { text-decoration: line-through; color: #668; }
+        .reminder-badge { background: rgba(255,154,239,0.15); color: #ff9aef; border-radius: 8px; padding: 3px 8px; font-size: 11px; display: inline-block; margin-top: 4px; }
+        .overdue-badge { background: rgba(255,80,80,0.2); color: #ff8888; }
     </style>
 </head>
 <body class="theme-default">
@@ -417,7 +432,7 @@
     <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; margin-bottom:30px;">
         <div class="glass-card" style="padding:26px;">
             <h3 style="color:#f0f9ff;">📝 দৈনিক এন্ট্রি</h3>
-            <input type="text" id="entryDate" class="input-glass" style="margin:12px 0;" placeholder="তারিখ নির্বাচন করুন" readonly>
+            <input type="text" id="entryDate" class="input-glass" style="margin:12px 0;" placeholder="তারিখ নির্বাচন করুন">
             <input type="number" id="dailySaveAmount" placeholder="আজকের সেভ (টাকা)" value="120" class="input-glass" style="margin:12px 0;">
             <input type="number" id="maintenanceCost" placeholder="মেইনটেন্যান্স খরচ" value="0" class="input-glass" style="margin:12px 0;">
             <button id="addEntryBtn" class="btn-3d" style="width:100%;">➕ দৈনিক এন্ট্রি যোগ করুন</button>
@@ -500,6 +515,65 @@
         </div>
     </div>
     
+    <!-- নোটস সেকশন -->
+    <div class="glass-card" style="padding:24px; margin-bottom:30px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+            <h3 style="color:white;">📓 নোটস & রিমাইন্ডার</h3>
+            <button onclick="showPin('notesAdd')" class="btn-3d" style="font-size:13px; padding:8px 16px;">➕ নতুন নোট</button>
+        </div>
+
+        <!-- সার্চ বার -->
+        <input type="text" id="notesSearch" class="input-glass" placeholder="🔍 নোট খুঁজুন..." style="width:100%; margin-bottom:14px;" oninput="renderNotes()">
+
+        <!-- ট্যাব -->
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+            <button onclick="setNotesTab('all')"      id="ntab_all"      class="btn-outline-glass active-tab" style="font-size:12px; padding:6px 14px;">📋 সব</button>
+            <button onclick="setNotesTab('note')"     id="ntab_note"     class="btn-outline-glass" style="font-size:12px; padding:6px 14px;">📝 নোট</button>
+            <button onclick="setNotesTab('todo')"     id="ntab_todo"     class="btn-outline-glass" style="font-size:12px; padding:6px 14px;">✅ টু-ডু</button>
+            <button onclick="setNotesTab('reminder')" id="ntab_reminder" class="btn-outline-glass" style="font-size:12px; padding:6px 14px;">🔔 রিমাইন্ডার</button>
+        </div>
+
+        <!-- নোট লিস্ট -->
+        <div id="notesList"></div>
+    </div>
+
+    <!-- নোট যোগ/এডিট মোডাল -->
+    <div id="noteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+        <div class="glass-card" style="padding:24px; width:90%; max-width:480px; max-height:85vh; overflow-y:auto;">
+            <h3 style="color:white; margin-bottom:14px;">📓 <span id="noteModalTitle">নতুন নোট</span></h3>
+
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <button onclick="setNoteType('note')"     id="ntype_note"     class="btn-outline-glass active-tab" style="flex:1; font-size:12px;">📝 নোট</button>
+                <button onclick="setNoteType('todo')"     id="ntype_todo"     class="btn-outline-glass" style="flex:1; font-size:12px;">✅ টু-ডু</button>
+                <button onclick="setNoteType('reminder')" id="ntype_reminder" class="btn-outline-glass" style="flex:1; font-size:12px;">🔔 রিমাইন্ডার</button>
+            </div>
+
+            <input id="noteTitle" class="input-glass" placeholder="শিরোনাম (ঐচ্ছিক)" style="width:100%; margin-bottom:10px;" type="text">
+
+            <!-- নোট টেক্সট (note/reminder) -->
+            <div id="noteTextArea">
+                <textarea id="noteContent" class="input-glass" placeholder="নোট লিখুন..." style="width:100%; min-height:120px; resize:vertical; padding:10px; margin-bottom:10px;"></textarea>
+            </div>
+
+            <!-- টু-ডু items -->
+            <div id="todoArea" style="display:none;">
+                <div id="todoItems"></div>
+                <button onclick="addTodoItem()" class="btn-outline-glass" style="width:100%; margin-top:6px; font-size:13px;">➕ আইটেম যোগ করুন</button>
+            </div>
+
+            <!-- রিমাইন্ডার সময় -->
+            <div id="reminderTimeArea" style="display:none; margin-bottom:10px;">
+                <label style="color:#c6fff0; font-size:13px;">🕐 রিমাইন্ডার সময়:</label>
+                <input id="reminderTime" type="datetime-local" class="input-glass" style="width:100%; margin-top:6px;">
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:14px;">
+                <button onclick="saveNote()" class="btn-3d" style="flex:1;">💾 সেভ করুন</button>
+                <button onclick="closeNoteModal()" class="btn-outline-glass" style="flex:1;">বাতিল</button>
+            </div>
+        </div>
+    </div>
+
     <footer style="text-align:center; margin-top:20px; color:#8aaec0; padding:16px;">
         ⚡ PWA রেডি | Firebase Sync সক্রিয় ✅ | develop by M a s u d S h a h<br>
         <span id="syncStatus">💾 লোকাল স্টোরেজ মোড (ছবি ও ডাটা সেভ আছে)</span>
@@ -635,6 +709,8 @@
         if(action==='upload') pendingFile=extra;
         if(action==='delete') pendingDelId=extra;
         if(action==='entry') pendingEntry=extra;
+        if(action==='notesEdit') pendingDelId=extra;
+        if(action==='notesDelete') pendingDelId=extra;
         document.getElementById('pinInput').value='';
         document.getElementById('pinModal').classList.add('active');
     }
@@ -662,6 +738,12 @@
             const id=pendingDelId; hidePin(); deleteGalleryItem(id);
         } else if(pendingAction==='route'){
             hidePin(); openRouteEditPanel();
+        } else if(pendingAction==='notesAdd'){
+            hidePin(); openNoteModal();
+        } else if(pendingAction==='notesEdit'){
+            const id=pendingDelId; hidePin(); openEditNotePanel(id);
+        } else if(pendingAction==='notesDelete'){
+            const id=pendingDelId; hidePin(); deleteNote(id);
         }
     }
     function hidePinModal(){ hidePin(); }
@@ -844,11 +926,13 @@
 
     // ===== INIT =====
     document.addEventListener('DOMContentLoaded',()=>{
-        flatpickr("#entryDate",{dateFormat:"Y-m-d",maxDate:"today",defaultDate:new Date(),altInput:true,altFormat:"j F, Y"});
+        flatpickr("#entryDate",{dateFormat:"Y-m-d",defaultDate:new Date(),altInput:true,altFormat:"j F, Y",allowInput:true});
         loadEntriesFromLocal();
         loadGalleryFromLocal();
+        loadNotes();
         updateAllUI();
         initRoute();
+        renderNotes();
 
         document.getElementById('addEntryBtn').onclick=addEntryWithPin;
         document.getElementById('pinConfirmBtn').onclick=verifyAndAddEntry;
@@ -872,7 +956,176 @@
     });
 </script>
 <script>
-    if('serviceWorker' in navigator){
+    // ========== NOTES SYSTEM ==========
+    let notes = [];
+    let notesTab = 'all';
+    let editingNoteId = null;
+    let currentNoteType = 'note';
+    let todoItems = [];
+
+    function loadNotes(){ const s=localStorage.getItem('masud_notes'); try{ notes=s?JSON.parse(s):[]; }catch(e){ notes=[]; } }
+    function saveNotes(){ localStorage.setItem('masud_notes',JSON.stringify(notes)); }
+
+    function setNotesTab(tab){
+        notesTab=tab;
+        ['all','note','todo','reminder'].forEach(t=>{
+            const el=document.getElementById('ntab_'+t);
+            if(el) el.classList.toggle('active-tab',t===tab);
+        });
+        renderNotes();
+    }
+
+    function renderNotes(){
+        const search=(document.getElementById('notesSearch')||{value:''}).value.toLowerCase();
+        const list=document.getElementById('notesList');
+        let filtered=notes.filter(n=>{
+            if(notesTab!=='all' && n.type!==notesTab) return false;
+            if(search && !(n.title+n.content).toLowerCase().includes(search)) return false;
+            return true;
+        }).sort((a,b)=>b.createdAt-a.createdAt);
+
+        if(!filtered.length){
+            list.innerHTML='<div style="color:#668;text-align:center;padding:20px;">📭 কোনো নোট নেই</div>';
+            return;
+        }
+
+        list.innerHTML=filtered.map(n=>{
+            const typeIcon = n.type==='todo'?'✅':n.type==='reminder'?'🔔':'📝';
+            let bodyHtml='';
+
+            if(n.type==='todo' && n.todos){
+                const done=n.todos.filter(t=>t.done).length;
+                bodyHtml=`<div style="font-size:12px;color:#aac8d8;margin-bottom:4px;">${done}/${n.todos.length} সম্পন্ন</div>
+                    ${n.todos.map((t,i)=>`
+                    <div class="todo-item ${t.done?'done':''}">
+                        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${n.id}',${i})">
+                        <span style="color:${t.done?'#668':'#eef5ff'};font-size:13px;">${t.text}</span>
+                    </div>`).join('')}`;
+            } else {
+                bodyHtml=`<div class="note-card-body">${(n.content||'').substring(0,200)}${(n.content||'').length>200?'...':''}</div>`;
+            }
+
+            let reminderHtml='';
+            if(n.type==='reminder' && n.reminderTime){
+                const rd=new Date(n.reminderTime);
+                const isOverdue=rd<new Date();
+                reminderHtml=`<div class="reminder-badge ${isOverdue?'overdue-badge':''}">🕐 ${rd.toLocaleString('bn-BD')}</div>`;
+            }
+
+            return `<div class="note-card type-${n.type}">
+                <div class="note-actions">
+                    <button class="note-action-btn" onclick="editNote('${n.id}')">✏️</button>
+                    <button class="note-action-btn" onclick="pinDeleteNote('${n.id}')" style="color:#ff8888;">🗑️</button>
+                </div>
+                ${n.title?`<div class="note-card-title">${typeIcon} ${n.title}</div>`:''}
+                ${bodyHtml}
+                ${reminderHtml}
+                <div class="note-card-meta">${new Date(n.createdAt).toLocaleDateString('bn-BD')}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function setNoteType(type){
+        currentNoteType=type;
+        ['note','todo','reminder'].forEach(t=>{
+            const el=document.getElementById('ntype_'+t);
+            if(el) el.classList.toggle('active-tab',t===type);
+        });
+        document.getElementById('noteTextArea').style.display=type!=='todo'?'block':'none';
+        document.getElementById('todoArea').style.display=type==='todo'?'block':'none';
+        document.getElementById('reminderTimeArea').style.display=type==='reminder'?'block':'none';
+    }
+
+    function addTodoItem(text=''){
+        todoItems.push({text,done:false});
+        renderTodoItems();
+    }
+
+    function renderTodoItems(){
+        document.getElementById('todoItems').innerHTML=todoItems.map((t,i)=>`
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                <input class="input-glass" style="flex:1;padding:6px;font-size:13px;" value="${t.text}"
+                    oninput="todoItems[${i}].text=this.value" placeholder="আইটেম ${i+1}">
+                <button onclick="removeTodoItem(${i})" style="background:rgba(255,80,80,0.2);border:none;border-radius:8px;padding:6px 10px;color:#ff8888;cursor:pointer;">✕</button>
+            </div>`).join('');
+    }
+
+    function removeTodoItem(i){ todoItems.splice(i,1); renderTodoItems(); }
+
+    function toggleTodo(noteId, idx){
+        const n=notes.find(n=>n.id===noteId);
+        if(n && n.todos) { n.todos[idx].done=!n.todos[idx].done; saveNotes(); renderNotes(); }
+    }
+
+    function openNoteModal(){
+        document.getElementById('noteModal').style.display='flex';
+        document.getElementById('noteTitle').value='';
+        document.getElementById('noteContent').value='';
+        document.getElementById('reminderTime').value='';
+        todoItems=[];
+        renderTodoItems();
+        setNoteType('note');
+        editingNoteId=null;
+        document.getElementById('noteModalTitle').innerText='নতুন নোট';
+    }
+
+    function closeNoteModal(){
+        document.getElementById('noteModal').style.display='none';
+        editingNoteId=null; todoItems=[];
+    }
+
+    function editNote(id){
+        showPin('notesEdit',id);
+    }
+
+    function openEditNotePanel(id){
+        const n=notes.find(n=>n.id===id);
+        if(!n) return;
+        editingNoteId=id;
+        document.getElementById('noteModal').style.display='flex';
+        document.getElementById('noteModalTitle').innerText='নোট এডিট করুন';
+        document.getElementById('noteTitle').value=n.title||'';
+        document.getElementById('noteContent').value=n.content||'';
+        if(n.reminderTime) document.getElementById('reminderTime').value=n.reminderTime;
+        currentNoteType=n.type;
+        if(n.todos) todoItems=[...n.todos]; else todoItems=[];
+        renderTodoItems();
+        setNoteType(n.type);
+    }
+
+    function saveNote(){
+        const title=document.getElementById('noteTitle').value.trim();
+        const content=document.getElementById('noteContent').value.trim();
+        const reminderTime=document.getElementById('reminderTime').value;
+        let todos=[];
+        if(currentNoteType==='todo'){
+            todos=todoItems.filter(t=>t.text.trim());
+            if(!todos.length){ alert('অন্তত একটি আইটেম যোগ করুন'); return; }
+        } else if(!content && !title){ alert('নোট খালি রাখা যাবে না'); return; }
+
+        if(editingNoteId){
+            const idx=notes.findIndex(n=>n.id===editingNoteId);
+            if(idx!==-1){
+                notes[idx]={...notes[idx],title,content,todos,reminderTime,type:currentNoteType,updatedAt:Date.now()};
+            }
+        } else {
+            notes.unshift({id:Date.now()+'_n',type:currentNoteType,title,content,todos,reminderTime,createdAt:Date.now()});
+        }
+        saveNotes(); renderNotes(); closeNoteModal();
+
+        // Reminder notification setup
+        if(currentNoteType==='reminder' && reminderTime){
+            const diff=new Date(reminderTime)-new Date();
+            if(diff>0 && diff<86400000){
+                setTimeout(()=>{ alert('🔔 রিমাইন্ডার: '+(title||content)); }, diff);
+            }
+        }
+    }
+
+    function pinDeleteNote(id){ showPin('notesDelete',id); }
+    function deleteNote(id){ notes=notes.filter(n=>n.id!==id); saveNotes(); renderNotes(); }
+</script>
+<script>
         const sw=`const C='cv2';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(['.']))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));`;
         navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
     }
