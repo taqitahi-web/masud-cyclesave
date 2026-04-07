@@ -646,14 +646,24 @@
             msg.innerHTML='';
             return;
         }
-        grid.innerHTML = all.map(img=>`
-            <div class="gallery-card">
-                ${img.permanent
-                    ? '<div class="delete-img-btn" style="background:#555;cursor:default;" title="মুছা যাবে না">📌</div>'
-                    : `<div class="delete-img-btn" onclick="event.stopPropagation();pinDelete('${img.id}')">🗑️</div>`}
-                <img src="${img.dataUrl}" class="gallery-img" onclick="window.open('${img.dataUrl}')" alt="${img.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><text y=\'.9em\'  font-size=\'80\'>📸</text></svg>'">
+        // Store images for preview
+        window._galleryMap = {};
+        all.forEach(img => { window._galleryMap[img.id] = {dataUrl: img.dataUrl, name: img.name}; });
+
+        grid.innerHTML = all.map((img,i)=>{
+            const delBtn = img.permanent
+                ? '<div class="delete-img-btn" style="background:#555;cursor:default;" title="মুছা যাবে না">📌</div>'
+                : `<div class="delete-img-btn" onclick="event.stopPropagation();pinDelete('${img.id}')">🗑️</div>`;
+            return `<div class="gallery-card">
+                ${delBtn}
+                <img src="${img.dataUrl}" class="gallery-img"
+                    onclick="showImgPreview('${img.id}')"
+                    alt="${img.name}"
+                    style="cursor:zoom-in;"
+                    onerror="this.style.display='none'">
                 <div class="gallery-name">${img.name}${img.permanent?' 📌':''}</div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
         msg.innerHTML = galleryImages.length+'/'+MAX_UPLOADS+'টি আপলোড হয়েছে';
     }
 
@@ -1126,9 +1136,48 @@
     function deleteNote(id){ notes=notes.filter(n=>n.id!==id); saveNotes(); renderNotes(); }
 </script>
 <script>
+    if('serviceWorker' in navigator){
         const sw=`const C='cv2';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(['.']))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));`;
         navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
     }
 </script>
+
+<!-- Image Preview Modal -->
+<div id="imgPreviewModal" onclick="closeImgPreview()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
+    <div onclick="event.stopPropagation()" style="position:relative;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;">
+        <img id="imgPreviewSrc" src="" style="max-width:95vw;max-height:80vh;object-fit:contain;border-radius:12px;box-shadow:0 0 40px rgba(0,242,192,0.2);">
+        <div id="imgPreviewName" style="color:#c6fff0;margin-top:10px;font-size:14px;text-align:center;"></div>
+        <div style="display:flex;gap:12px;margin-top:12px;">
+            <button onclick="downloadPreviewImg()" style="background:rgba(0,242,192,0.2);border:1px solid #00f2c0;border-radius:10px;padding:8px 20px;color:#00f2c0;cursor:pointer;font-size:13px;">⬇️ ডাউনলোড</button>
+            <button onclick="closeImgPreview()" style="background:rgba(255,80,80,0.2);border:1px solid #ff8888;border-radius:10px;padding:8px 20px;color:#ff8888;cursor:pointer;font-size:13px;">✕ বন্ধ করুন</button>
+        </div>
+    </div>
+</div>
+<script>
+    let _previewUrl='';
+    function showImgPreview(id){
+        const map = window._galleryMap || {};
+        const img = map[id];
+        if(!img || !img.dataUrl){ alert('ছবি লোড হয়নি'); return; }
+        _previewUrl = img.dataUrl;
+        document.getElementById('imgPreviewSrc').src = img.dataUrl;
+        document.getElementById('imgPreviewName').innerText = img.name || '';
+        document.getElementById('imgPreviewModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+        function closeImgPreview(){
+        document.getElementById('imgPreviewModal').style.display='none';
+        document.body.style.overflow='';
+    }
+    function downloadPreviewImg(){
+        const a=document.createElement('a');
+        a.href=_previewUrl;
+        a.download='cyclesave_photo.jpg';
+        a.click();
+    }
+    // ESC key to close
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeImgPreview(); });
+</script>
+
 </body>
 </html>
