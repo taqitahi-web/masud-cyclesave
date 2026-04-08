@@ -69,6 +69,21 @@
     window.fbLoadRoute=async function(){
       try{const s=await getDocs(collection(db,'settings'));let r=null;s.forEach(d=>{if(d.id==='routeMap')r=d.data();});return r;}catch(e){return null;}
     };
+    // Notes Firebase
+    window.fbSaveNotes=async function(notes){
+      try{
+        // সব নোট একটি document এ সেভ (array হিসেবে)
+        await setDoc(doc(db,'settings','notes'),{list:notes,updatedAt:Date.now()});
+      }catch(e){console.error('Notes save error:',e);}
+    };
+    window.fbLoadNotes=async function(){
+      try{
+        const snap=await getDocs(collection(db,'settings'));
+        let n=null;
+        snap.forEach(d=>{if(d.id==='notes') n=d.data();});
+        return n&&n.list?n.list:null;
+      }catch(e){return null;}
+    };
 
     window.addEventListener('load',async()=>{
       document.getElementById('syncStatus').innerText='🔄 Firebase লোড হচ্ছে...';
@@ -81,8 +96,11 @@
       if(fbG&&fbG.length>0){ if(typeof window._reloadGallery==='function') window._reloadGallery(fbG); }
       const fbR=await window.fbLoadRoute();
       if(fbR){ if(typeof window._reloadRoute==='function') window._reloadRoute(fbR); }
-      const ec=fbE?fbE.length:0,gc=fbG?fbG.length:0;
-      document.getElementById('syncStatus').innerText='☁️ Firebase: '+ec+'টি এন্ট্রি, '+gc+'টি ছবি ✅';
+      // Notes লোড
+      const fbN=await window.fbLoadNotes();
+      if(fbN&&fbN.length>0){ if(typeof window._reloadNotes==='function') window._reloadNotes(fbN); }
+      const ec=fbE?fbE.length:0,gc=fbG?fbG.length:0,nc=fbN?fbN.length:0;
+      document.getElementById('syncStatus').innerText='☁️ Firebase: '+ec+'টি এন্ট্রি, '+gc+'টি ছবি, '+nc+'টি নোট ✅';
     });
     </script>
     <style>
@@ -428,6 +446,54 @@
         .todo-item.done span { text-decoration: line-through; color: #668; }
         .reminder-badge { background: rgba(255,154,239,0.15); color: #ff9aef; border-radius: 8px; padding: 3px 8px; font-size: 11px; display: inline-block; margin-top: 4px; }
         .overdue-badge { background: rgba(255,80,80,0.2); color: #ff8888; }
+        /* Header Hover GIF */
+        .header-hover-card .header-gif-overlay {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .header-hover-card .header-gif-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+            filter: brightness(0.45) saturate(1.2);
+        }
+        .header-hover-card:hover .header-gif-overlay {
+            opacity: 1;
+        }
+        /* KM Card Hover GIF */
+        .km-card .km-gif-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: inherit;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .km-card .km-gif-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+            filter: brightness(0.45) saturate(1.2);
+        }
+        .km-card:hover .km-gif-overlay {
+            opacity: 1;
+        }
+        .km-card .stat-label,
+        .km-card .stat-value {
+            position: relative;
+            z-index: 2;
+        }
     </style>
 </head>
 <body class="theme-default">
@@ -468,12 +534,17 @@
 
 <div style="max-width: 1400px; margin: 0 auto; position: relative; z-index: 2;">
     <!-- HEADER -->
-    <div class="glass-card" style="padding: 20px 32px; margin-bottom: 30px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;">
-        <div>
+    <div class="glass-card header-hover-card" style="padding: 20px 32px; margin-bottom: 30px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; position:relative; overflow:hidden;">
+        <!-- GIF overlay — লেখার পেছনে, hover এ দৃশ্যমান -->
+        <div class="header-gif-overlay">
+            <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYmYwbTFtbXFoM3B0MmJnZGdja2puZXAybTBjaW1hZHp3MGM1bHZucCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ftvphb1LgYP9SgoNGn/giphy.gif" alt="">
+        </div>
+        <!-- লেখা সবসময় দৃশ্যমান -->
+        <div style="position:relative;z-index:2;">
             <h1 style="font-size:1.8rem; background:linear-gradient(135deg,#fff,#b3f0e0); -webkit-background-clip:text; background-clip:text; color:transparent;">🚲 M a s u d সাইকেল সাশ্রয় ড্যাশবোর্ড</h1>
             <p style="color: #cceeff; margin-top: 5px;">জ্বালানি সংকটের সমাধান | সবুজ যাত্রা, সুস্থ জীবন</p>
         </div>
-        <div class="theme-switch" style="display:flex; gap:8px;">
+        <div class="theme-switch" style="display:flex; gap:8px; position:relative; z-index:2;">
             <button class="theme-btn" data-theme="default">🌿 ডিফল্ট</button>
             <button class="theme-btn" data-theme="navy-teal">⚓ Navy & Teal</button>
             <button class="theme-btn" data-theme="yellow-navy">⭐ Yellow & Navy</button>
@@ -496,8 +567,20 @@
         <div class="stat-card glass-card"><div class="stat-label">📆 সাইকেলের টাকা পরিশোধ হবে</div><div class="stat-value" id="breakEvenDaysDisplay">-- দিন</div></div>
         <div class="stat-card glass-card"><div class="stat-label">💎 সাইকেলের সমতুল্য জমা হবে</div><div class="stat-value" id="targetReachDaysDisplay">-- দিন</div></div>
         <div class="stat-card glass-card"><div class="stat-label">📊 নেট এফেক্টিভ খরচ</div><div class="stat-value" id="netCostDisplay">১৩,০০০ ৳</div></div>
-        <div class="stat-card glass-card" style="border:1px solid rgba(0,242,192,0.3);"><div class="stat-label">🛣️ মোট সাইকেল দূরত্ব</div><div class="stat-value" id="totalKmDisplay" style="color:#00f2c0;">০ কিমি</div></div>
-        <div class="stat-card glass-card" style="border:1px solid rgba(0,242,192,0.3);"><div class="stat-label">📈 গড় দৈনিক দূরত্ব</div><div class="stat-value" id="avgKmDisplay" style="color:#a5ffcf;">০ কিমি</div></div>
+        <div class="stat-card glass-card km-card" style="border:1px solid rgba(0,242,192,0.3);position:relative;overflow:hidden;cursor:default;">
+            <div class="stat-label">🛣️ মোট সাইকেল দূরত্ব</div>
+            <div class="stat-value" id="totalKmDisplay" style="color:#00f2c0;">০ কিমি</div>
+            <div class="km-gif-overlay">
+                <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZHBwdzcxMXF3d3RvZGt6eXF0MGF6bTFza3hyZ3djMjFybjRoN243cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GoVnCVLbVMeFKu3ZQu/giphy.gif" alt="bike animation">
+            </div>
+        </div>
+        <div class="stat-card glass-card km-card" style="border:1px solid rgba(0,242,192,0.3);position:relative;overflow:hidden;cursor:default;">
+            <div class="stat-label">📈 গড় দৈনিক দূরত্ব</div>
+            <div class="stat-value" id="avgKmDisplay" style="color:#a5ffcf;">০ কিমি</div>
+            <div class="km-gif-overlay">
+                <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZHBwdzcxMXF3d3RvZGt6eXF0MGF6bTFza3hyZ3djMjFybjRoN243cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GoVnCVLbVMeFKu3ZQu/giphy.gif" alt="bike animation">
+            </div>
+        </div>
     </div>
     
     <!-- ইনপুট + চার্ট সেকশন -->
@@ -1125,8 +1208,21 @@
     let currentNoteType = 'note';
     let todoItems = [];
 
-    function loadNotes(){ const s=localStorage.getItem('masud_notes'); try{ notes=s?JSON.parse(s):[]; }catch(e){ notes=[]; } }
-    function saveNotes(){ localStorage.setItem('masud_notes',JSON.stringify(notes)); }
+    function loadNotes(){
+        const s=localStorage.getItem('masud_notes');
+        try{ notes=s?JSON.parse(s):[]; }catch(e){ notes=[]; }
+    }
+    function saveNotes(){
+        localStorage.setItem('masud_notes',JSON.stringify(notes));
+        // Firebase-এও সেভ
+        if(typeof window.fbSaveNotes==='function') window.fbSaveNotes(notes);
+    }
+    // Firebase থেকে notes reload
+    window._reloadNotes=function(fbN){
+        notes=fbN;
+        localStorage.setItem('masud_notes',JSON.stringify(notes));
+        renderNotes();
+    };
 
     function setNotesTab(tab){
         notesTab=tab;
