@@ -615,6 +615,112 @@
             opacity: 1;
             pointer-events: all;
         }
+        /* ===== BLOG STYLES ===== */
+        .blog-card {
+            background: rgba(0,0,0,0.28);
+            border-radius: 20px;
+            border-left: 3px solid #00f2c0;
+            margin-bottom: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+        }
+        .blog-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            border-left-color: #a5ffcf;
+            box-shadow: 0 8px 24px rgba(0,242,192,0.15);
+        }
+        .blog-card-thumb {
+            width: 100px;
+            min-width: 100px;
+            object-fit: cover;
+            border-radius: 0;
+        }
+        .blog-card-thumb-placeholder {
+            width: 100px;
+            min-width: 100px;
+            background: rgba(0,242,192,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        .blog-card-body {
+            padding: 14px 16px;
+            flex: 1;
+        }
+        .blog-card-title {
+            color: #eef5ff;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        .blog-card-excerpt {
+            color: #8aaec0;
+            font-size: 12px;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .blog-card-meta {
+            color: #556677;
+            font-size: 11px;
+            margin-top: 8px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .blog-card-actions {
+            display: flex;
+            gap: 6px;
+            padding: 10px;
+            align-items: center;
+        }
+        .blog-action-btn {
+            background: rgba(255,255,255,0.08);
+            border: none;
+            border-radius: 8px;
+            padding: 5px 9px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .blog-action-btn:hover { background: rgba(255,80,80,0.2); }
+        .blog-detail-img {
+            width: 100%;
+            max-height: 320px;
+            object-fit: cover;
+            border-radius: 16px;
+            margin-bottom: 18px;
+        }
+        .blog-detail-title {
+            color: #eef5ff;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .blog-detail-meta {
+            color: #8aaec0;
+            font-size: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .blog-detail-body {
+            color: #c6fff0;
+            font-size: 14px;
+            line-height: 1.9;
+            white-space: pre-wrap;
+        }
+
         /* confetti particles */
         .confetti-container {
             position: fixed;
@@ -743,7 +849,7 @@
             <button id="syncFirebaseBtn" class="btn-outline-glass" style="width:100%; margin-top:8px;">☁️ ক্লাউড সিঙ্ক</button>
         </div>
         <div class="glass-card" style="padding:20px;">
-            <h3 style="color:#f0f9ff;">📈 সঞ্চয় প্রবণতা (দৈনিক সেভ)</h3>
+            <h3 style="color:#f0f9ff;">📈 সঞ্চয় প্রবণতা (দৈনিক সেভ ও কিমি)</h3>
             <canvas id="savingsChart" height="120"></canvas>
             <div class="filter-bar" style="margin-top:16px;">
                 <select id="filterYear" class="input-glass" style="width:auto; padding:6px 12px;"><option value="all">সব বছর</option></select>
@@ -876,6 +982,15 @@
                 <button onclick="closeNoteModal()" class="btn-outline-glass" style="flex:1;">বাতিল</button>
             </div>
         </div>
+    </div>
+
+    <!-- ব্লগ সেকশন -->
+    <div class="glass-card" style="padding:24px; margin-bottom:30px;" id="blogSection">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+            <h3 style="color:white;">✍️ সাইকেল ব্লগ</h3>
+            <button onclick="openBlogModal()" class="btn-3d" style="font-size:13px; padding:8px 18px;">➕ নতুন পোস্ট</button>
+        </div>
+        <div id="blogList"></div>
     </div>
 
     <footer style="text-align:center; margin-top:20px; color:#8aaec0; padding:16px;">
@@ -1141,7 +1256,60 @@
         const sorted=[...entries].sort((a,b)=>new Date(a.date)-new Date(b.date));
         const ctx=document.getElementById('savingsChart').getContext('2d');
         if(savingsChart) savingsChart.destroy();
-        savingsChart=new Chart(ctx,{type:'line',data:{labels:sorted.map(e=>e.date.slice(5)),datasets:[{label:'দৈনিক সঞ্চয় (৳)',data:sorted.map(e=>e.saving),borderColor:'#2ecc71',backgroundColor:'rgba(46,204,113,0.1)',fill:true,tension:0.3,pointBackgroundColor:'#00f2c0'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#eef5ff'}}}}});
+        savingsChart=new Chart(ctx,{
+            type:'line',
+            data:{
+                labels:sorted.map(e=>e.date.slice(5)),
+                datasets:[
+                    {
+                        label:'দৈনিক সঞ্চয় (৳)',
+                        data:sorted.map(e=>e.saving),
+                        borderColor:'#2ecc71',
+                        backgroundColor:'rgba(46,204,113,0.08)',
+                        fill:true,
+                        tension:0.3,
+                        pointBackgroundColor:'#00f2c0',
+                        yAxisID:'y'
+                    },
+                    {
+                        label:'দৈনিক দূরত্ব (কিমি)',
+                        data:sorted.map(e=>e.km||0),
+                        borderColor:'#00f2c0',
+                        backgroundColor:'rgba(0,242,192,0.06)',
+                        fill:false,
+                        tension:0.3,
+                        pointBackgroundColor:'#00b4d8',
+                        borderDash:[4,3],
+                        yAxisID:'y2'
+                    }
+                ]
+            },
+            options:{
+                responsive:true,
+                maintainAspectRatio:true,
+                interaction:{mode:'index',intersect:false},
+                plugins:{
+                    legend:{labels:{color:'#eef5ff',font:{size:11}}}
+                },
+                scales:{
+                    y:{
+                        type:'linear',
+                        display:true,
+                        position:'left',
+                        ticks:{color:'#a5ffcf',font:{size:10}},
+                        grid:{color:'rgba(255,255,255,0.05)'}
+                    },
+                    y2:{
+                        type:'linear',
+                        display:true,
+                        position:'right',
+                        ticks:{color:'#00f2c0',font:{size:10}},
+                        grid:{drawOnChartArea:false}
+                    },
+                    x:{ticks:{color:'#c6fff0',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}}
+                }
+            }
+        });
     }
     function populateFilters(){
         const years=[...new Set(entries.map(e=>e.date.slice(0,4)))].sort();
@@ -1583,6 +1751,36 @@
     document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeImgPreview(); });
 </script>
 
+<!-- ব্লগ পোস্ট Modal -->
+<div id="blogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;align-items:center;justify-content:center;">
+    <div class="glass-card" style="padding:26px;width:94%;max-width:560px;max-height:90vh;overflow-y:auto;">
+        <h3 style="color:white;margin-bottom:16px;">✍️ <span id="blogModalTitle">নতুন ব্লগ পোস্ট</span></h3>
+        <input id="blogTitle" class="input-glass" placeholder="পোস্টের শিরোনাম লিখুন..." style="width:100%;margin-bottom:10px;" type="text">
+        <textarea id="blogContent" class="input-glass" placeholder="আজকের সাইকেল যাত্রার গল্প লিখুন..." style="width:100%;min-height:160px;resize:vertical;padding:12px;margin-bottom:10px;border-radius:20px;"></textarea>
+        <!-- ছবি আপলোড -->
+        <div style="margin-bottom:12px;">
+            <label style="color:#c6fff0;font-size:13px;display:block;margin-bottom:6px;">📸 ব্লগ ছবি (ঐচ্ছিক):</label>
+            <label class="file-input-label" style="cursor:pointer;display:inline-block;">
+                📷 ছবি বেছে নিন
+                <input type="file" id="blogImageInput" accept="image/*" style="display:none;" onchange="previewBlogImage(this)">
+            </label>
+            <div id="blogImagePreview" style="margin-top:10px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+            <button onclick="saveBlogPost()" class="btn-3d" style="flex:1;">💾 পোস্ট করুন</button>
+            <button onclick="closeBlogModal()" class="btn-outline-glass" style="flex:1;">বাতিল</button>
+        </div>
+    </div>
+</div>
+
+<!-- ব্লগ ডিটেইলস Modal -->
+<div id="blogDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:5001;align-items:center;justify-content:center;">
+    <div class="glass-card" style="padding:28px;width:94%;max-width:600px;max-height:92vh;overflow-y:auto;position:relative;">
+        <button onclick="closeBlogDetail()" style="position:absolute;top:14px;right:16px;background:rgba(255,80,80,0.2);border:1px solid #ff8888;border-radius:10px;padding:5px 12px;color:#ff8888;cursor:pointer;font-size:13px;">✕ বন্ধ</button>
+        <div id="blogDetailContent"></div>
+    </div>
+</div>
+
 <!-- KM Milestone Popup -->
 <div class="milestone-overlay" id="milestoneOverlay" onclick="closeMilestonePopup()"></div>
 <div class="confetti-container" id="confettiContainer"></div>
@@ -1593,6 +1791,173 @@
     <p id="milestoneMsg">আপনি মাইলস্টোন অতিক্রম করেছেন!</p>
     <button class="close-btn" onclick="closeMilestonePopup()">✅ দারুণ!</button>
 </div>
+
+<script>
+    // ===== BLOG SYSTEM =====
+    let blogPosts = [];
+    let editingBlogId = null;
+    let blogImageData = null;
+
+    function loadBlogPosts() {
+        const s = localStorage.getItem('masud_blog_posts');
+        try { blogPosts = s ? JSON.parse(s) : []; } catch(e) { blogPosts = []; }
+        renderBlogList();
+    }
+
+    function saveBlogPosts() {
+        localStorage.setItem('masud_blog_posts', JSON.stringify(blogPosts));
+        // Firebase save
+        if(typeof window.fbSaveBlogPosts === 'function') window.fbSaveBlogPosts(blogPosts);
+    }
+
+    function renderBlogList() {
+        const list = document.getElementById('blogList');
+        if(!blogPosts.length) {
+            list.innerHTML = '<div style="color:#8aaec0;text-align:center;padding:28px 0;">📝 এখনো কোনো পোস্ট নেই। প্রথম ব্লগ পোস্ট লিখুন!</div>';
+            return;
+        }
+        list.innerHTML = [...blogPosts].reverse().map(p => {
+            const thumbHtml = p.imageData
+                ? `<img src="${p.imageData}" class="blog-card-thumb" alt="ছবি" onerror="this.style.display='none'">`
+                : `<div class="blog-card-thumb-placeholder">🚲</div>`;
+            const excerpt = (p.content||'').substring(0,120) + ((p.content||'').length>120?'...':'');
+            const dateStr = new Date(p.createdAt).toLocaleDateString('bn-BD');
+            return `<div class="blog-card" onclick="openBlogDetail('${p.id}')">
+                ${thumbHtml}
+                <div class="blog-card-body">
+                    <div class="blog-card-title">${p.title||'(শিরোনাম নেই)'}</div>
+                    <div class="blog-card-excerpt">${excerpt||'...'}</div>
+                    <div class="blog-card-meta">
+                        <span>📅 ${dateStr}</span>
+                        <span style="color:#00f2c0;">👁 ক্লিক করে পড়ুন</span>
+                    </div>
+                </div>
+                <div class="blog-card-actions" onclick="event.stopPropagation()">
+                    <button class="blog-action-btn" onclick="editBlogPost('${p.id}')" title="এডিট">✏️</button>
+                    <button class="blog-action-btn" onclick="deleteBlogPost('${p.id}')" title="মুছুন" style="color:#ff8888;">🗑️</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function openBlogModal(id=null) {
+        editingBlogId = id;
+        blogImageData = null;
+        document.getElementById('blogImagePreview').innerHTML = '';
+        if(id) {
+            const p = blogPosts.find(b=>b.id===id);
+            if(!p) return;
+            document.getElementById('blogModalTitle').innerText = 'পোস্ট এডিট করুন';
+            document.getElementById('blogTitle').value = p.title||'';
+            document.getElementById('blogContent').value = p.content||'';
+            if(p.imageData) {
+                blogImageData = p.imageData;
+                document.getElementById('blogImagePreview').innerHTML = `<img src="${p.imageData}" style="max-width:100%;max-height:150px;border-radius:12px;object-fit:cover;">`;
+            }
+        } else {
+            document.getElementById('blogModalTitle').innerText = 'নতুন ব্লগ পোস্ট';
+            document.getElementById('blogTitle').value = '';
+            document.getElementById('blogContent').value = '';
+        }
+        document.getElementById('blogModal').style.display = 'flex';
+    }
+
+    function closeBlogModal() {
+        document.getElementById('blogModal').style.display = 'none';
+        editingBlogId = null;
+        blogImageData = null;
+        document.getElementById('blogImageInput').value = '';
+        document.getElementById('blogImagePreview').innerHTML = '';
+    }
+
+    function previewBlogImage(input) {
+        if(!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        if(!file.type.startsWith('image/')) { alert('শুধু ছবি ফাইল দিন'); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            // compress
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if(w > 800) { h = Math.round(h*800/w); w = 800; }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img,0,0,w,h);
+                blogImageData = canvas.toDataURL('image/jpeg', 0.7);
+                document.getElementById('blogImagePreview').innerHTML =
+                    `<img src="${blogImageData}" style="max-width:100%;max-height:150px;border-radius:12px;object-fit:cover;margin-top:4px;">`;
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function saveBlogPost() {
+        const title = document.getElementById('blogTitle').value.trim();
+        const content = document.getElementById('blogContent').value.trim();
+        if(!title && !content) { alert('শিরোনাম বা কন্টেন্ট অন্তত একটি দিন'); return; }
+
+        if(editingBlogId) {
+            const idx = blogPosts.findIndex(b=>b.id===editingBlogId);
+            if(idx !== -1) {
+                blogPosts[idx] = {...blogPosts[idx], title, content,
+                    imageData: blogImageData||blogPosts[idx].imageData||null,
+                    updatedAt: Date.now()};
+            }
+        } else {
+            blogPosts.push({
+                id: Date.now()+'_b',
+                title, content,
+                imageData: blogImageData||null,
+                createdAt: Date.now()
+            });
+        }
+        saveBlogPosts();
+        renderBlogList();
+        closeBlogModal();
+    }
+
+    function editBlogPost(id) { openBlogModal(id); }
+
+    function deleteBlogPost(id) {
+        if(!confirm('এই পোস্ট মুছে ফেলবেন?')) return;
+        blogPosts = blogPosts.filter(b=>b.id!==id);
+        saveBlogPosts();
+        renderBlogList();
+    }
+
+    function openBlogDetail(id) {
+        const p = blogPosts.find(b=>b.id===id);
+        if(!p) return;
+        const dateStr = new Date(p.createdAt).toLocaleString('bn-BD');
+        const imgHtml = p.imageData
+            ? `<img src="${p.imageData}" class="blog-detail-img" alt="ব্লগ ছবি" onerror="this.style.display='none'">`
+            : '';
+        document.getElementById('blogDetailContent').innerHTML = `
+            ${imgHtml}
+            <div class="blog-detail-title">${p.title||'(শিরোনাম নেই)'}</div>
+            <div class="blog-detail-meta">📅 ${dateStr} ${p.updatedAt?'| ✏️ সম্পাদিত':''}  </div>
+            <div class="blog-detail-body">${(p.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        `;
+        document.getElementById('blogDetailModal').style.display = 'flex';
+    }
+
+    function closeBlogDetail() {
+        document.getElementById('blogDetailModal').style.display = 'none';
+    }
+
+    // ESC key closes blog modals
+    document.addEventListener('keydown', e => {
+        if(e.key==='Escape') {
+            closeBlogModal();
+            closeBlogDetail();
+        }
+    });
+
+    // Load blog on DOM ready
+    document.addEventListener('DOMContentLoaded', () => { loadBlogPosts(); });
+</script>
 
 <script>
     // ===== KM MILESTONE SYSTEM =====
