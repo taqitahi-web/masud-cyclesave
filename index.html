@@ -1712,8 +1712,7 @@
                 if(goalRiddenInfoEl) goalRiddenInfoEl.innerText = '🎉 লক্ষ্য অর্জিত!';
             }
         }
-        // KM milestone check
-        if(typeof checkKmMilestone === 'function') checkKmMilestone(totalKm);
+        // KM milestone — updateAllUI থেকে trigger করা হয় না, শুধু page load এ
         renderTxList(); renderMonthly(); updateChart(); updateFilteredSummary();
         saveEntriesToLocal(); populateFilters();
     }
@@ -1986,6 +1985,12 @@
         updateAllUI();
         initRoute();
         renderNotes();
+
+        // Page load এ milestone trigger — local data দিয়ে (Firebase আসার আগে)
+        setTimeout(()=>{
+            const totalKm = entries.reduce((s,e)=>s+(e.km||0),0);
+            if(typeof window._triggerMilestoneOnLoad==='function') window._triggerMilestoneOnLoad(totalKm);
+        }, 1200); // loader animation শেষ হওয়ার পরে
 
         document.getElementById('addEntryBtn').onclick=addEntryWithPin;
         document.getElementById('pinConfirmBtn').onclick=verifyAndAddEntry;
@@ -2554,30 +2559,37 @@
 
 <script>
     // ===== KM MILESTONE SYSTEM =====
-    // লজিক: ৫০০-৯৯৯ → ৫০০ পপআপ, ১০০০-১৪৯৯ → ১০০০ পপআপ (প্রতিটি নতুন block এ একবার)
+    // লজিক:
+    // - প্রতিবার page load এ একবার দেখাবে (এন্ট্রি করলে নয়)
+    // - ৫০০-৯৯৯ → ৫০০ পপআপ, ১০০০-১৪৯৯ → ১০০০ পপআপ
     const MILESTONE_STEP = 500;
-    window._activeMilestone = 0; // window এ রাখি যাতে Firebase load callback থেকে access করা যায়
+    window._milestoneShownThisSession = false; // এই session এ দেখানো হয়েছে কিনা
 
     function checkKmMilestone(totalKm) {
-        if(totalKm < MILESTONE_STEP) return;
-
-        // বর্তমান km কোন ৫০০-block এ: ৫০০-৯৯৯→500, ১০০০-১৪৯৯→1000
-        const currentBlock = Math.floor(totalKm / MILESTONE_STEP) * MILESTONE_STEP;
-
-        // নতুন block এ ঢুকলেই দেখাই
-        if(currentBlock !== window._activeMilestone) {
-            window._activeMilestone = currentBlock;
-            showMilestonePopup(currentBlock, totalKm);
-        }
+        // updateAllUI থেকে call হলে skip — শুধু explicit trigger এ দেখাবে
+        // এই function কে updateAllUI থেকে সরিয়ে দেওয়া হবে
     }
 
-    // Firebase load হওয়ার পরে force check — অন্য ডিভাইসে প্রথম লোডে দেখানোর জন্য
+    // Page load এ একবার দেখানোর জন্য — local বা Firebase উভয় data load এর পরে
+    window._triggerMilestoneOnLoad = function(totalKm) {
+        if(window._milestoneShownThisSession) return; // এই session এ already দেখানো হয়েছে
+        if(totalKm < MILESTONE_STEP) return;
+        window._milestoneShownThisSession = true;
+        const currentBlock = Math.floor(totalKm / MILESTONE_STEP) * MILESTONE_STEP;
+        showMilestonePopup(currentBlock, totalKm);
+    };
+
+    // Firebase load হওয়ার পরে force trigger — অন্য ডিভাইসে দেখানোর জন্য
     window._forceMilestoneCheck = function(totalKm) {
         if(totalKm < MILESTONE_STEP) return;
+        // Firebase data দিয়ে override করি — session flag reset করি না, কারণ
+        // local data দিয়ে আগেই দেখানো হয়ে থাকলে আবার দেখাব না
+        // কিন্তু যদি local এ km < 500 ছিল আর Firebase এ বেশি, তাহলে দেখাব
         const currentBlock = Math.floor(totalKm / MILESTONE_STEP) * MILESTONE_STEP;
-        // সবসময় reset করে দেখাই — Firebase sync এর পরে নতুন ডিভাইসে একবার দেখাবে
-        window._activeMilestone = 0; // reset
-        checkKmMilestone(totalKm);
+        if(!window._milestoneShownThisSession) {
+            window._milestoneShownThisSession = true;
+            showMilestonePopup(currentBlock, totalKm);
+        }
     };
 
     function showMilestonePopup(milestone, totalKm) {
