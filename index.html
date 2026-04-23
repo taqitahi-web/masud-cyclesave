@@ -209,6 +209,12 @@
       if(fbE&&fbE.length>0){
         localStorage.setItem('masud_cycle_entries',JSON.stringify(fbE));
         if(typeof window._reloadEntries==='function') window._reloadEntries(fbE);
+        // Firebase entries load হওয়ার পরে milestone check — অন্য ডিভাইসে দেখানোর জন্য
+        setTimeout(()=>{
+          const totalKm = fbE.reduce((s,e)=>s+(e.km||0),0);
+          // _activeMilestone reset করি যাতে নতুন ডিভাইসেও দেখায়
+          if(typeof window._forceMilestoneCheck==='function') window._forceMilestoneCheck(totalKm);
+        }, 800);
       }
       const fbG=await window.fbLoadGallery();
       if(fbG&&fbG.length>0){ if(typeof window._reloadGallery==='function') window._reloadGallery(fbG); }
@@ -219,7 +225,17 @@
       if(fbN&&fbN.length>0){ if(typeof window._reloadNotes==='function') window._reloadNotes(fbN); }
       // Blog লোড
       const fbBlog=await window.fbLoadBlogPosts();
-      if(fbBlog&&fbBlog.length>0){ if(typeof window._reloadBlogPosts==='function') window._reloadBlogPosts(fbBlog); }
+      if(fbBlog&&fbBlog.length>0){
+        // localStorage এ সরাসরি সেভ করি
+        localStorage.setItem('masud_blog_posts', JSON.stringify(fbBlog));
+        // _reloadBlogPosts ready থাকলে call করি, না হলে wait করি
+        if(typeof window._reloadBlogPosts==='function'){
+          window._reloadBlogPosts(fbBlog);
+        } else {
+          // DOM ready হওয়ার পরে retry
+          window._pendingBlogData = fbBlog;
+        }
+      }
       const ec=fbE?fbE.length:0,gc=fbG?fbG.length:0,nc=fbN?fbN.length:0,bc=fbBlog?fbBlog.length:0;
       document.getElementById('syncStatus').innerText='☁️ Firebase: '+ec+'টি এন্ট্রি, '+gc+'টি ছবি, '+nc+'টি নোট, '+bc+'টি ব্লগ ✅';
     });
@@ -2538,58 +2554,57 @@
 
 <script>
     // ===== KM MILESTONE SYSTEM =====
+    // লজিক: ৫০০-৯৯৯ → ৫০০ পপআপ, ১০০০-১৪৯৯ → ১০০০ পপআপ (প্রতিটি নতুন block এ একবার)
     const MILESTONE_STEP = 500;
-    // shownMilestones: Set of milestones already shown this session + stored
-    let _shownMilestones = new Set(
-        JSON.parse(localStorage.getItem('masud_shown_milestones') || '[]')
-    );
+    window._activeMilestone = 0; // window এ রাখি যাতে Firebase load callback থেকে access করা যায়
 
     function checkKmMilestone(totalKm) {
-        if(totalKm <= 0) return;
-        // ৫০০ এর পরে প্রতিটি ৫০০ milestone চেক করি
-        const currentMilestone = Math.floor(totalKm / MILESTONE_STEP) * MILESTONE_STEP;
-        if(currentMilestone <= 0) return;
+        if(totalKm < MILESTONE_STEP) return;
 
-        // যে মাইলস্টোনগুলো এখনো দেখানো হয়নি সেগুলো দেখাই
-        // ৫০০ থেকে currentMilestone পর্যন্ত সব
-        for(let m = MILESTONE_STEP; m <= currentMilestone; m += MILESTONE_STEP) {
-            if(!_shownMilestones.has(m)) {
-                _shownMilestones.add(m);
-                localStorage.setItem('masud_shown_milestones', JSON.stringify([..._shownMilestones]));
-                showMilestonePopup(m, totalKm);
-                break; // একটাই দেখাই একবারে, পরেরটা পরেরবার
-            }
+        // বর্তমান km কোন ৫০০-block এ: ৫০০-৯৯৯→500, ১০০০-১৪৯৯→1000
+        const currentBlock = Math.floor(totalKm / MILESTONE_STEP) * MILESTONE_STEP;
+
+        // নতুন block এ ঢুকলেই দেখাই
+        if(currentBlock !== window._activeMilestone) {
+            window._activeMilestone = currentBlock;
+            showMilestonePopup(currentBlock, totalKm);
         }
     }
+
+    // Firebase load হওয়ার পরে force check — অন্য ডিভাইসে প্রথম লোডে দেখানোর জন্য
+    window._forceMilestoneCheck = function(totalKm) {
+        if(totalKm < MILESTONE_STEP) return;
+        const currentBlock = Math.floor(totalKm / MILESTONE_STEP) * MILESTONE_STEP;
+        // সবসময় reset করে দেখাই — Firebase sync এর পরে নতুন ডিভাইসে একবার দেখাবে
+        window._activeMilestone = 0; // reset
+        checkKmMilestone(totalKm);
+    };
 
     function showMilestonePopup(milestone, totalKm) {
         const emojis = { 500:'🏆', 1000:'🌟', 1500:'🚀', 2000:'💎', 2500:'👑', 3000:'🌍', 3500:'⚡', 4000:'🔥', 5000:'👨‍🚀' };
         const emoji = emojis[milestone] || '🎯';
 
-        // ৫০০ মাইলস্টোন — ১০০০ এর আগে পর্যন্ত একই বার্তা কিন্তু আলাদা উৎসাহ
         const msgs = {
-            500:  '🎉 প্রথম ৫০০ কিমি সাইকেল চালিয়েছেন! পরিবেশ বাঁচানোতে আপনার অবদান অসাধারণ! 🌱',
-            1000: '💪 ১০০০ কিমি পার! আপনি একটি সত্যিকারের সাইক্লিস্ট! দারুণ লক্ষ্যে এগিয়ে চলুন!',
-            1500: '🌿 ১৫০০ কিমি! স্বাস্থ্য ও পরিবেশ দুটোই জিতছেন! থামবেন না!',
-            2000: '🏙️ ২০০০ কিমি পার! অবিশ্বাস্য! একটি শহর থেকে আরেকটি শহরে পৌঁছে গেছেন!',
-            2500: '👑 ২৫০০ কিমি! আপনি একজন সাইকেল চ্যাম্পিয়ন! অসাধারণ অধ্যবসায়!',
-            3000: '🌍 ৩০০০ কিমি! পুরো দেশ ঘুরে ফেলার পথে আছেন! অভূতপূর্ব!',
+            500:  '🎉 আপনি ৫০০ কিমি জোনে আছেন! পরিবেশ বাঁচানোতে আপনার অবদান অসাধারণ! 🌱',
+            1000: '💪 আপনি ১০০০ কিমি জোনে আছেন! আপনি একটি সত্যিকারের সাইক্লিস্ট!',
+            1500: '🌿 আপনি ১৫০০ কিমি জোনে আছেন! স্বাস্থ্য ও পরিবেশ দুটোই জিতছেন!',
+            2000: '🏙️ আপনি ২০০০ কিমি জোনে আছেন! অবিশ্বাস্য অর্জন!',
+            2500: '👑 আপনি ২৫০০ কিমি জোনে আছেন! সাইকেল চ্যাম্পিয়ন!',
+            3000: '🌍 আপনি ৩০০০ কিমি জোনে আছেন! অভূতপূর্ব!',
         };
 
-        // Sub-message for 500 milestone (encouragement to reach 1000)
-        let subMsg = '';
-        if(milestone === 500) {
-            subMsg = '🎯 লক্ষ্য: ১০০০ কিমি পৌঁছান! আরো ' + Math.round(1000 - totalKm) + ' কিমি বাকি!';
-        } else if(milestone < 1000) {
-            subMsg = '🎯 ১০০০ কিমি পৌঁছাতে আরো ' + Math.round(1000 - totalKm) + ' কিমি বাকি!';
-        }
+        // পরবর্তী milestone কত দূরে
+        const nextMilestone = milestone + MILESTONE_STEP;
+        const remaining = Math.max(0, Math.round(nextMilestone - totalKm));
+        const currentKmBn = Math.round(totalKm).toLocaleString('bn-BD');
+        const subMsg = `📍 এখন: ${currentKmBn} কিমি &nbsp;|&nbsp; 🎯 পরের লক্ষ্য: ${nextMilestone.toLocaleString('bn-BD')} কিমি (আরো ${remaining.toLocaleString('bn-BD')} কিমি বাকি)`;
 
         document.getElementById('milestoneEmoji').textContent = emoji;
-        document.getElementById('milestoneKmText').textContent = milestone.toLocaleString('bn-BD') + ' কিমি!';
+        document.getElementById('milestoneKmText').textContent = milestone.toLocaleString('bn-BD') + ' কিমি জোন!';
         document.getElementById('milestoneTitle').textContent = 'মাইলস্টোন অতিক্রম! 🎉';
         document.getElementById('milestoneMsg').innerHTML =
-            (msgs[milestone] || `আপনি ${milestone.toLocaleString()} কিমি পার করেছেন! চলতে থাকুন! 🚴`) +
-            (subMsg ? `<br><span style="font-size:0.85rem;color:#ffd98c;margin-top:6px;display:block;">${subMsg}</span>` : '');
+            (msgs[milestone] || `আপনি ${milestone.toLocaleString('bn-BD')} কিমি পার করেছেন! চলতে থাকুন! 🚴`) +
+            `<br><span style="font-size:0.8rem;color:#ffd98c;margin-top:8px;display:block;line-height:1.6;">${subMsg}</span>`;
 
         document.getElementById('milestoneOverlay').classList.add('active');
         document.getElementById('kmMilestonePopup').classList.add('active');
