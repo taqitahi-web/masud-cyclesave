@@ -304,8 +304,10 @@
             box-shadow: 0 20px 35px -12px rgba(0,0,0,0.3);
             transition: all 0.25s ease;
         }
-        .glass-card:hover {
-            transform: translateY(-6px) scale(1.01);
+        @media (hover: hover) {
+            .glass-card:hover {
+                transform: translateY(-6px) scale(1.01);
+            }
         }
         .btn-3d {
             background: linear-gradient(135deg, #00b894, #008b74);
@@ -1255,6 +1257,293 @@
             0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
             100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
+
+        /* ===== TOAST NOTIFICATIONS ===== */
+        #toast-container {
+            position: fixed;
+            bottom: 76px;
+            right: 16px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(10,40,45,0.97);
+            border: 1px solid rgba(0,242,192,0.5);
+            border-radius: 20px;
+            padding: 12px 18px;
+            color: #f0f9ff;
+            font-size: 0.88rem;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transform: translateX(60px);
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: all;
+            max-width: 280px;
+            word-break: break-word;
+        }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.success { border-color: rgba(0,242,192,0.7); }
+        .toast.error { border-color: rgba(255,80,80,0.7); background: rgba(40,10,10,0.97); }
+        .toast.info { border-color: rgba(100,180,255,0.6); }
+        .toast.warning { border-color: rgba(255,210,80,0.6); }
+
+        /* ===== BOTTOM NAV (MOBILE) ===== */
+        #bottomNav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9000;
+            background: rgba(5,18,25,0.97);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,242,192,0.2);
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        }
+        @media (max-width: 768px) {
+            #bottomNav { display: flex; }
+            body { padding-bottom: 70px; }
+        }
+        .bnav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 4px;
+            cursor: pointer;
+            color: #668899;
+            border: none;
+            background: none;
+            transition: color 0.2s;
+            font-size: 9px;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+        }
+        .bnav-item .bnav-icon { font-size: 20px; line-height: 1; }
+        .bnav-item.active { color: #00f2c0; }
+        .bnav-item:active { transform: scale(0.9); }
+
+        /* ===== SECTION HEADERS ===== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,242,192,0.15);
+        }
+        .section-header-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .section-header h3 { margin: 0; color: #f0f9ff; font-size: 1.05rem; font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif; }
+        .section-header .section-subtitle { font-size: 0.75rem; color: #8aaec0; margin-top: 2px; }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 36px 20px;
+            color: #8aaec0;
+        }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 10px; opacity: 0.6; }
+        .empty-state-title { font-size: 1rem; font-weight: 600; color: #c6fff0; margin-bottom: 6px; }
+        .empty-state-desc { font-size: 0.85rem; line-height: 1.6; }
+
+        /* ===== WEEKLY SUMMARY CARD ===== */
+        .weekly-card {
+            background: rgba(0,242,192,0.05);
+            border: 1px solid rgba(0,242,192,0.2);
+            border-radius: 24px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+        .weekly-item { text-align: center; }
+        .weekly-value { font-size: 1.5rem; font-weight: 800; color: #00f2c0; }
+        .weekly-label { font-size: 0.72rem; color: #8aaec0; margin-top: 2px; }
+        .weekly-change { font-size: 0.72rem; margin-top: 2px; }
+        .weekly-change.up { color: #2ecc71; }
+        .weekly-change.down { color: #ff8888; }
+        @media (max-width: 480px) {
+            .weekly-card { grid-template-columns: 1fr 1fr; }
+            .weekly-item:last-child { grid-column: 1 / -1; }
+        }
+
+        /* streak-badge remains, co2-card replaced by eco section */
+        .streak-badge { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,rgba(255,80,0,0.2),rgba(255,150,0,0.15)); border:1px solid rgba(255,120,0,0.4); border-radius:40px; padding:6px 14px; font-size:0.85rem; font-weight:700; color:#ffd98c; }
+        .streak-flame { font-size:1.1rem; }
+
+        /* ===== ACTIVITY HEATMAP ===== */
+        .heatmap-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 12px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .heatmap-cell {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.06);
+            transition: transform 0.15s;
+            cursor: default;
+            position: relative;
+        }
+        .heatmap-cell.has-entry { background: rgba(0,242,192,0.25); }
+        .heatmap-cell.high-entry { background: rgba(0,242,192,0.55); }
+        .heatmap-cell.very-high { background: rgba(0,242,192,0.85); }
+        .heatmap-cell:hover { transform: scale(1.4); z-index: 2; }
+        .heatmap-month-label { font-size: 10px; color: #668899; width: 100%; margin-top: 4px; }
+        .heatmap-legend { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: #668899; }
+        .heatmap-legend-cell { width: 12px; height: 12px; border-radius: 2px; }
+        @media (max-width: 480px) {
+            .heatmap-cell { width: 12px; height: 12px; }
+        }
+
+        /* extra themes removed */
+
+        /* ===== SECTION COLORS ===== */
+        .sh-entry   { background: rgba(0,184,148,0.15); }
+        .sh-chart   { background: rgba(52,152,219,0.15); }
+        .sh-log     { background: rgba(155,89,182,0.15); }
+        .sh-gallery { background: rgba(230,126,34,0.15); }
+        .sh-route   { background: rgba(231,76,60,0.15); }
+        .sh-notes   { background: rgba(241,196,15,0.15); }
+        .sh-blog    { background: rgba(26,188,156,0.15); }
+        .sh-stats   { background: rgba(39,174,96,0.15); }
+
+
+        /* ═══════════════════════════════════════════
+           CO₂ / ECO IMPACT SECTION
+           ═══════════════════════════════════════════ */
+        .eco-impact-card {
+            background: linear-gradient(160deg, rgba(0,40,30,0.85) 0%, rgba(0,20,15,0.95) 100%) !important;
+            border: 1px solid rgba(0,242,192,0.2) !important;
+        }
+        .eco-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 18px 22px 14px;
+            border-bottom: 1px solid rgba(0,242,192,0.12);
+        }
+        .eco-header-left { display: flex; align-items: center; gap: 12px; }
+        .eco-planet { font-size: 1.8rem; }
+        .eco-subtitle { font-size: 11px; color: #668899; letter-spacing: 0.5px; margin-bottom: 3px; }
+        .eco-title { font-size: 1.1rem; font-weight: 800; color: #00f2c0; }
+        .eco-badge-info {
+            font-size: 11px;
+            color: #a5ffcf;
+            background: rgba(0,242,192,0.1);
+            border: 1px solid rgba(0,242,192,0.25);
+            border-radius: 20px;
+            padding: 4px 12px;
+        }
+
+        /* 4-column stat grid */
+        .eco-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            border-bottom: 1px solid rgba(0,242,192,0.1);
+        }
+        .eco-stat-card {
+            padding: 18px 16px;
+            text-align: center;
+            border-right: 1px solid rgba(0,242,192,0.08);
+        }
+        .eco-stat-card:last-child { border-right: none; }
+        .eco-stat-value {
+            font-size: 2rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
+        .eco-unit { font-size: 1rem; font-weight: 600; }
+        .eco-stat-value.teal   { color: #00f2c0; text-shadow: 0 0 12px rgba(0,242,192,0.4); }
+        .eco-stat-value.green  { color: #2ecc71; text-shadow: 0 0 12px rgba(46,204,113,0.3); }
+        .eco-stat-value.orange { color: #fd9644; text-shadow: 0 0 12px rgba(253,150,68,0.3); }
+        .eco-stat-value.purple { color: #a29bfe; text-shadow: 0 0 12px rgba(162,155,254,0.3); }
+        .eco-stat-label { font-size: 11px; color: #8aaec0; line-height: 1.4; }
+
+        /* Progress bar */
+        .eco-progress-wrap {
+            padding: 10px 22px 12px;
+            border-bottom: 1px solid rgba(0,242,192,0.1);
+        }
+        .eco-prog-label { font-size: 11px; color: #668899; }
+        .eco-prog-pct { font-size: 11px; color: #00f2c0; float: right; font-weight: 700; }
+        .eco-prog-bar {
+            height: 5px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 99px;
+            margin-top: 6px;
+            overflow: hidden;
+            clear: both;
+        }
+        .eco-prog-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #00f2c0);
+            border-radius: 99px;
+            transition: width 0.8s ease;
+            max-width: 100%;
+        }
+
+        /* Comparison badges */
+        .eco-compare-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 22px 16px;
+        }
+        .eco-compare-badge {
+            font-size: 12px;
+            color: #c6fff0;
+            background: rgba(0,242,192,0.07);
+            border: 1px solid rgba(0,242,192,0.18);
+            border-radius: 20px;
+            padding: 5px 14px;
+            white-space: nowrap;
+        }
+        .eco-compare-badge strong { color: #00f2c0; font-weight: 800; }
+
+        /* Mobile responsive */
+        @media (max-width: 600px) {
+            .eco-stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .eco-stat-card:nth-child(2) { border-right: none; }
+            .eco-stat-card:nth-child(3) { border-top: 1px solid rgba(0,242,192,0.08); border-right: 1px solid rgba(0,242,192,0.08); }
+            .eco-stat-card:nth-child(4) { border-top: 1px solid rgba(0,242,192,0.08); border-right: none; }
+            .eco-stat-value { font-size: 1.5rem; }
+            .eco-title { font-size: 0.95rem; }
+            .eco-compare-wrap { padding: 10px 16px 14px; }
+            .eco-compare-badge { font-size: 11px; padding: 5px 10px; }
+            .eco-header { padding: 14px 16px 12px; }
+            .eco-progress-wrap { padding: 10px 16px 12px; }
+        }
+        @media (max-width: 380px) {
+            .eco-stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .eco-stat-value { font-size: 1.3rem; }
+        }
+
     </style>
 </head>
 <body class="theme-default">
@@ -1307,8 +1596,8 @@
         </div>
         <div class="theme-switch" style="display:flex; gap:8px; position:relative; z-index:2;">
             <button class="theme-btn" data-theme="default">🌿 ডিফল্ট</button>
-            <button class="theme-btn" data-theme="navy-teal">⚓ Navy & Teal</button>
-            <button class="theme-btn" data-theme="yellow-navy">⭐ Yellow & Navy</button>
+            <button class="theme-btn" data-theme="navy-teal">⚓ Navy</button>
+            <button class="theme-btn" data-theme="yellow-navy">⭐ Yellow</button>
         </div>
     </div>
     
@@ -1320,6 +1609,78 @@
         </div>
     </div>
     
+    <!-- ===== CO₂ ENVIRONMENTAL IMPACT SECTION ===== -->
+    <div class="glass-card eco-impact-card" style="margin-bottom:28px; padding:0; overflow:hidden;">
+        <!-- Header -->
+        <div class="eco-header">
+            <div class="eco-header-left">
+                <span class="eco-planet">🌍</span>
+                <div>
+                    <div class="eco-subtitle">পরিবেশ রক্ষায় অবদান</div>
+                    <div class="eco-title">সাইকেল চালিয়ে CO₂ সাশ্রয়</div>
+                </div>
+            </div>
+            <div class="eco-badge-info">প্রতি কিমিতে ১২০g CO₂</div>
+        </div>
+
+        <!-- 4 stat cards -->
+        <div class="eco-stats-grid">
+            <div class="eco-stat-card">
+                <div class="eco-stat-value teal" id="ecoCo2Kg">০ <span class="eco-unit">কেজি</span></div>
+                <div class="eco-stat-label">কেজি CO₂<br>বাঁচানো হয়েছে</div>
+            </div>
+            <div class="eco-stat-card">
+                <div class="eco-stat-value green" id="ecoTrees">০ <span class="eco-unit">টি</span></div>
+                <div class="eco-stat-label">গাছের<br>সমতুল্য 🌳</div>
+            </div>
+            <div class="eco-stat-card">
+                <div class="eco-stat-value orange" id="ecoPetrolBike">০ <span class="eco-unit">লি</span></div>
+                <div class="eco-stat-label">লিটার পেট্রোল<br>সাশ্রয় হয়েছে ⛽</div>
+            </div>
+            <div class="eco-stat-card">
+                <div class="eco-stat-value purple" id="ecoPhoneCharge">০ <span class="eco-unit">বার</span></div>
+                <div class="eco-stat-label">বার ফোন চার্জের<br>সমতুল্য 🔋</div>
+            </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="eco-progress-wrap">
+            <span class="eco-prog-label">লক্ষ্য ১,০০০ কেজি CO₂ সাশ্রয়</span>
+            <span class="eco-prog-pct" id="ecoPct">০%</span>
+            <div class="eco-prog-bar">
+                <div class="eco-prog-fill" id="ecoPctBar" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- Comparison badges -->
+        <div class="eco-compare-wrap">
+            <span class="eco-compare-badge">🚗 গাড়ির তুলনায় <strong id="ecoCarKm">০</strong> কিমি কম দূষণ</span>
+            <span class="eco-compare-badge">✈️ বিমানের <strong id="ecoFlightMin">০</strong> মিনিট ফ্লাইটের সমান CO₂</span>
+            <span class="eco-compare-badge" id="ecoBikeCompBadge">🏍️ বাইকের তুলনায় <strong id="ecoBikeLiter">০</strong> লিটার পেট্রোল সাশ্রয়</span>
+        </div>
+    </div>
+
+    <!-- ===== WEEKLY SUMMARY ===== -->
+    <div id="weeklySummarySection" style="margin-bottom:20px;">
+        <div class="weekly-card" id="weeklyCard">
+            <div class="weekly-item">
+                <div class="weekly-value" id="weeklyKm">০</div>
+                <div class="weekly-label">🛣️ এই সপ্তাহ কিমি</div>
+                <div class="weekly-change" id="weeklyKmChange"></div>
+            </div>
+            <div class="weekly-item">
+                <div class="weekly-value" id="weeklySavings">০</div>
+                <div class="weekly-label">💰 এই সপ্তাহ সঞ্চয়</div>
+                <div class="weekly-change" id="weeklySavingsChange"></div>
+            </div>
+            <div class="weekly-item">
+                <div class="weekly-value" id="weeklyDays">০</div>
+                <div class="weekly-label">📅 দিন চালিয়েছি</div>
+                <div class="weekly-change" id="weeklyDaysChange"></div>
+            </div>
+        </div>
+        <span class="streak-badge" id="streakBadge" style="margin-top:8px;display:inline-flex;"><span class="streak-flame">🔥</span> <span id="streakCount">০</span> দিনের Streak</span>
+    </div>
     <!-- ড্যাশবোর্ড কার্ড -->
     <div class="dashboard-grid">
         <div class="stat-card glass-card"><div class="stat-label">🚲 সাইকেল মূল্য (এককালীন)</div><div class="stat-value" id="cyclePriceDisplay">১৩,০০০ ৳</div></div>
@@ -1371,9 +1732,15 @@
     </div>
     
     <!-- ইনপুট + চার্ট সেকশন -->
-    <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; margin-bottom:30px;" class="input-chart-grid">
+    <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; margin-bottom:30px;" class="input-chart-grid" id="entry-section">
         <div class="glass-card" style="padding:26px;">
-            <h3 style="color:#f0f9ff;">📝 দৈনিক এন্ট্রি</h3>
+            <div class="section-header">
+                <div class="section-header-icon sh-entry">📝</div>
+                <div>
+                    <h3>দৈনিক এন্ট্রি</h3>
+                    <div class="section-subtitle">প্রতিদিনের রাইড লগ করুন</div>
+                </div>
+            </div>
             <input type="text" id="entryDate" class="input-glass" style="margin:8px 0;" placeholder="তারিখ নির্বাচন করুন">
             <input type="number" id="dailySaveAmount" placeholder="আজকের সেভ (টাকা)" value="120" class="input-glass" style="margin:8px 0;">
             <input type="number" id="maintenanceCost" placeholder="মেইনটেন্যান্স খরচ" value="0" class="input-glass" style="margin:8px 0;">
@@ -1402,9 +1769,12 @@
     </div>
     
     <!-- গ্যালারি সেকশন -->
-    <div class="glass-card" style="padding:24px; margin-bottom:30px;">
+    <div class="glass-card" style="padding:24px; margin-bottom:30px;" id="gallery-section">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:15px;">
-            <h3 style="color:white;">🖼️ গ্যালারি (সাইকেলের ছবি - সর্বোচ্চ ১০টি আপলোড)</h3>
+            <div class="section-header" style="margin-bottom:0;border:none;padding:0;">
+                <div class="section-header-icon sh-gallery">🖼️</div>
+                <div><h3>গ্যালারি</h3><div class="section-subtitle">সাইকেলের ছবি — সর্বোচ্চ ১০টি</div></div>
+            </div>
             <label class="file-input-label" id="galleryUploadBtn" style="cursor:pointer;">
                 📸 ছবি নির্বাচন করুন
                 <input type="file" id="galleryImageInput" accept="image/*" style="display:none;">
@@ -1417,7 +1787,10 @@
     <!-- রুট ম্যাপ সেকশন -->
     <div class="glass-card" style="padding:24px; margin-bottom:30px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-            <h3 style="color:white;">🗺️ রুট ম্যাপ: সৈয়দপুর → এভারগ্রিন ফ্যাক্টরি (UEPZ)</h3>
+            <div class="section-header" style="margin-bottom:0;border:none;padding:0;">
+                <div class="section-header-icon sh-route">🗺️</div>
+                <div><h3>রুট ম্যাপ</h3><div class="section-subtitle">সৈয়দপুর → UEPZ</div></div>
+            </div>
             <button onclick="startRouteEdit()" id="routeEditBtn" class="btn-outline-glass" style="font-size:13px;">✏️ এডিট</button>
         </div>
         <div id="routeViewMode">
@@ -1458,10 +1831,14 @@
         </div>
     </div>
     
+
     <!-- নোটস সেকশন -->
-    <div class="glass-card" style="padding:24px; margin-bottom:30px;">
+    <div class="glass-card" style="padding:24px; margin-bottom:30px;" id="notes-section">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
-            <h3 style="color:white;">📓 নোটস & রিমাইন্ডার</h3>
+            <div class="section-header" style="margin-bottom:0;border:none;padding:0;">
+                <div class="section-header-icon sh-notes">📓</div>
+                <div><h3>নোটস & রিমাইন্ডার</h3><div class="section-subtitle">নোট, টু-ডু, রিমাইন্ডার</div></div>
+            </div>
             <button onclick="showPin('notesAdd')" class="btn-3d" style="font-size:13px; padding:8px 16px;">➕ নতুন নোট</button>
         </div>
 
@@ -1518,15 +1895,45 @@
     </div>
 
     <!-- ব্লগ সেকশন -->
-    <div class="glass-card" style="padding:24px; margin-bottom:30px;" id="blogSection">
+    <div class="glass-card" style="padding:24px; margin-bottom:30px;" id="blog-section">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
-            <h3 style="color:white;">✍️ সাইকেল ব্লগ</h3>
+            <div class="section-header" style="margin-bottom:0;border:none;padding:0;">
+                <div class="section-header-icon sh-blog">✍️</div>
+                <div><h3>সাইকেল ব্লগ</h3><div class="section-subtitle">যাত্রার গল্প ও অভিজ্ঞতা</div></div>
+            </div>
             <button onclick="openBlogModal()" class="btn-3d" style="font-size:13px; padding:8px 18px;">➕ নতুন পোস্ট</button>
         </div>
         <div id="blogList"></div>
     </div>
 
-    <footer style="text-align:center; margin-top:20px; color:#8aaec0; padding:16px;">
+    <!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Bottom Navigation (Mobile) -->
+<div id="bottomNav">
+    <button class="bnav-item active" onclick="scrollToSection('top')" id="bnav-home">
+        <span class="bnav-icon">🏠</span>
+        <span>হোম</span>
+    </button>
+    <button class="bnav-item" onclick="scrollToSection('entry-section')" id="bnav-entry">
+        <span class="bnav-icon">📝</span>
+        <span>এন্ট্রি</span>
+    </button>
+    <button class="bnav-item" onclick="scrollToSection('gallery-section')" id="bnav-gallery">
+        <span class="bnav-icon">🖼️</span>
+        <span>গ্যালারি</span>
+    </button>
+    <button class="bnav-item" onclick="scrollToSection('notes-section')" id="bnav-notes">
+        <span class="bnav-icon">📓</span>
+        <span>নোটস</span>
+    </button>
+    <button class="bnav-item" onclick="scrollToSection('blog-section')" id="bnav-blog">
+        <span class="bnav-icon">✍️</span>
+        <span>ব্লগ</span>
+    </button>
+</div>
+
+<footer style="text-align:center; margin-top:20px; color:#8aaec0; padding:16px;">
         ⚡ PWA রেডি | Firebase Sync সক্রিয় ✅ | develop by M a s u d S h a h<br>
         <span id="syncStatus">💾 লোকাল স্টোরেজ মোড (ছবি ও ডাটা সেভ আছে)</span>
     </footer>
@@ -1797,9 +2204,19 @@
         if(typeof checkKmMilestone === 'function') checkKmMilestone(totalKm);
         renderTxList(); renderMonthly(); updateChart(); updateFilteredSummary();
         saveEntriesToLocal(); populateFilters();
+        // New features
+        updateWeeklySummary();
+        updateStreakAndCO2();
     }
     function renderTxList(){
-        if(!entries.length){transactionContainer.innerHTML='<div style="padding:16px;text-align:center;color:#fff;">📭 কোনো এন্ট্রি নেই</div>';return;}
+        if(!entries.length){
+            transactionContainer.innerHTML=`<div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-title">কোনো এন্ট্রি নেই</div>
+                <div class="empty-state-desc">প্রথম দৈনিক এন্ট্রি যোগ করুন</div>
+            </div>`;
+            return;
+        }
         const s=[...entries].sort((a,b)=>b.date.localeCompare(a.date));
         transactionContainer.innerHTML=s.map(e=>`
             <div class="transaction-item" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
@@ -1908,6 +2325,170 @@
             syncStatusSpan.innerText='🔄 সিংক হচ্ছে...';
             await window.fbSaveEntries(entries);
         }
+    }
+
+
+    // ===== WEEKLY SUMMARY =====
+    function updateWeeklySummary() {
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0=Sun
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - dayOfWeek);
+        startOfWeek.setHours(0,0,0,0);
+
+        const prevStart = new Date(startOfWeek);
+        prevStart.setDate(prevStart.getDate() - 7);
+        const prevEnd = new Date(startOfWeek);
+
+        let thisKm = 0, thisSav = 0, thisDays = 0;
+        let prevKm = 0, prevSav = 0, prevDays = 0;
+        const daysSet = new Set();
+        const prevDaysSet = new Set();
+
+        entries.forEach(e => {
+            const d = new Date(e.date);
+            if (d >= startOfWeek && d <= now) {
+                thisKm += parseFloat(e.km || 0);
+                thisSav += parseFloat(e.saving || 0);
+                daysSet.add(e.date);
+            }
+            if (d >= prevStart && d < prevEnd) {
+                prevKm += parseFloat(e.km || 0);
+                prevSav += parseFloat(e.saving || 0);
+                prevDaysSet.add(e.date);
+            }
+        });
+        thisDays = daysSet.size;
+        prevDays = prevDaysSet.size;
+
+        const fmt = (n) => n % 1 === 0 ? n : n.toFixed(1);
+        const pct = (a, b) => b === 0 ? null : Math.round(((a - b) / b) * 100);
+
+        const kmEl = document.getElementById('weeklyKm');
+        const savEl = document.getElementById('weeklySavings');
+        const daysEl = document.getElementById('weeklyDays');
+        const kmChEl = document.getElementById('weeklyKmChange');
+        const savChEl = document.getElementById('weeklySavingsChange');
+        const daysChEl = document.getElementById('weeklyDaysChange');
+
+        if(kmEl) kmEl.textContent = fmt(thisKm) + ' কিমি';
+        if(savEl) savEl.textContent = '৳' + fmt(thisSav);
+        if(daysEl) daysEl.textContent = thisDays + ' দিন';
+
+        const arrow = (p) => p > 0 ? '↑' : '↓';
+        const cls = (p) => p > 0 ? 'up' : 'down';
+
+        const kmP = pct(thisKm, prevKm);
+        const savP = pct(thisSav, prevSav);
+        const daysP = pct(thisDays, prevDays);
+
+        if(kmChEl) kmChEl.innerHTML = kmP !== null ? `<span class="weekly-change ${cls(kmP)}">${arrow(kmP)} ${Math.abs(kmP)}% গত সপ্তাহ থেকে</span>` : '';
+        if(savChEl) savChEl.innerHTML = savP !== null ? `<span class="weekly-change ${cls(savP)}">${arrow(savP)} ${Math.abs(savP)}%</span>` : '';
+        if(daysChEl) daysChEl.innerHTML = daysP !== null ? `<span class="weekly-change ${cls(daysP)}">${arrow(daysP)} ${Math.abs(daysP)}%</span>` : '';
+    }
+
+    // ===== STREAK + CO2 =====
+    function updateStreakAndCO2() {
+        const totalKm = entries.reduce((s, e) => s + parseFloat(e.km || 0), 0);
+
+        // ── CO₂ হিসাব (প্রতি কিমিতে ১২০g সাশ্রয়) ──
+        const co2Kg = totalKm * 0.12;
+
+        // ── গাছের সমতুল্য (১ গাছ ≈ ২১ kg CO₂/বছর) ──
+        const trees = co2Kg / 21;
+
+        // ── বাইকের তুলনায় পেট্রোল সাশ্রয় (বাইক ৪৪ কিমি/লিটার) ──
+        // সাইকেল ০ পেট্রোল, বাইক = km/44
+        const bikeLiters = totalKm / 44;
+
+        // ── ফোন চার্জ সমতুল্য (১ চার্জ ≈ ০.০১ kWh, ১ kg CO₂ ≈ ৫০ চার্জ) ──
+        const phoneCharges = co2Kg * 50;
+
+        // ── গাড়ির তুলনায় দূষণ কমানো km (গাড়ি ১৫ কিমি/লিটার, ২.৩kg CO₂/লিটার) ──
+        const carKmEquiv = (co2Kg / 2.3) * 15;
+
+        // ── বিমান ফ্লাইট মিনিট (cruise ৯০g CO₂/km, ৫০০ kmh) ──
+        const flightKm = co2Kg / 0.09;
+        const flightMin = Math.round(flightKm / 500 * 60);
+
+        // ── লক্ষ্য প্রগতি (১,০০০ kg) ──
+        const pct = Math.min((co2Kg / 1000) * 100, 100);
+
+        // ── Format helper ──
+        const fmt = n => {
+            if(n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/, '') + ',০০০';
+            if(n >= 10)  return Math.round(n).toLocaleString('bn');
+            return n.toFixed(1);
+        };
+        const fmtInt = n => Math.round(n).toLocaleString('bn-BD').replace(/[0-9]/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+
+        // DOM আপডেট
+        const set = (id, val) => { const el = document.getElementById(id); if(el) el.innerHTML = val; };
+        set('ecoCo2Kg',    fmt(co2Kg)    + ' <span class="eco-unit">কেজি</span>');
+        set('ecoTrees',    fmt(trees)    + ' <span class="eco-unit">টি</span>');
+        set('ecoPetrolBike', fmt(bikeLiters) + ' <span class="eco-unit">লি</span>');
+        set('ecoPhoneCharge', (phoneCharges >= 1000 ? (phoneCharges/1000).toFixed(1)+'k' : Math.round(phoneCharges)) + ' <span class="eco-unit">বার</span>');
+
+        const pctEl = document.getElementById('ecoPct');
+        const barEl = document.getElementById('ecoPctBar');
+        if(pctEl) pctEl.textContent = pct.toFixed(1) + '%';
+        if(barEl) barEl.style.width = pct + '%';
+
+        set('ecoCarKm',    Math.round(carKmEquiv));
+        set('ecoFlightMin', flightMin);
+        set('ecoBikeLiter', fmt(bikeLiters));
+
+        // Streak হিসাব
+        const sortedDates = [...new Set(entries.map(e => e.date))].sort().reverse();
+        let streak = 0;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        for(let i = 0; i < sortedDates.length; i++) {
+            const d = new Date(sortedDates[i]);
+            d.setHours(0,0,0,0);
+            const expected = new Date(today);
+            expected.setDate(today.getDate() - i);
+            if(d.getTime() === expected.getTime()) streak++;
+            else break;
+        }
+        const strEl = document.getElementById('streakCount');
+        if(strEl) strEl.textContent = streak;
+    }
+
+        // ===== BOTTOM NAV SCROLL =====
+    function scrollToSection(id) {
+        if(id === 'top') {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+            document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+            document.getElementById('bnav-home').classList.add('active');
+            return;
+        }
+        const el = document.getElementById(id);
+        if(el) {
+            el.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+        document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+        const bnavId = 'bnav-' + id.replace('-section','');
+        const bnavEl = document.getElementById(bnavId);
+        if(bnavEl) bnavEl.classList.add('active');
+    }
+
+    // ===== TOAST SYSTEM =====
+    function showToast(message, type = 'success', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        if(!container) return;
+
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${icons[type] || '📌'}</span><span>${message}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
     }
 
     // ===== THEME =====
