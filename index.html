@@ -834,8 +834,7 @@
         .header-hover-card .header-gif-overlay {
             position: absolute;
             inset: 0;
-            opacity: 0;
-            transition: opacity 0.4s ease;
+            opacity: 1;
             z-index: 1;
             pointer-events: none;
         }
@@ -844,10 +843,7 @@
             height: 100%;
             object-fit: cover;
             border-radius: inherit;
-            filter: brightness(0.45) saturate(1.2);
-        }
-        .header-hover-card:hover .header-gif-overlay {
-            opacity: 1;
+            filter: brightness(0.28) saturate(1.2);
         }
         /* KM Card Hover GIF */
         .km-card .km-gif-overlay {
@@ -857,8 +853,7 @@
             align-items: center;
             justify-content: center;
             background: transparent;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            opacity: 1;
             border-radius: inherit;
             z-index: 1;
             pointer-events: none;
@@ -868,10 +863,7 @@
             height: 100%;
             object-fit: cover;
             border-radius: inherit;
-            filter: brightness(0.45) saturate(1.2);
-        }
-        .km-card:hover .km-gif-overlay {
-            opacity: 1;
+            filter: brightness(0.32) saturate(1.2);
         }
         .km-card .stat-label,
         .km-card .stat-value {
@@ -1544,6 +1536,65 @@
             .eco-stat-value { font-size: 1.3rem; }
         }
 
+
+        /* ===== COMPACT NOTE CARD ===== */
+        .note-card-compact {
+            cursor: pointer;
+            padding: 11px 14px !important;
+            margin-bottom: 6px !important;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s !important;
+        }
+        .note-card-compact:hover {
+            background: rgba(0,242,192,0.07) !important;
+            border-color: rgba(0,242,192,0.35) !important;
+        }
+        .note-card-compact:active { transform: scale(0.98); }
+        .note-card-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+        .note-type-icon { font-size: 14px; flex-shrink: 0; }
+        .note-card-title-inline {
+            flex: 1;
+            color: #eef5ff;
+            font-size: 13.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .note-todo-count {
+            font-size: 11px;
+            background: rgba(0,242,192,0.12);
+            border: 1px solid rgba(0,242,192,0.25);
+            border-radius: 10px;
+            padding: 1px 7px;
+            color: #a5ffcf;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .note-overdue-tag {
+            font-size: 10px;
+            background: rgba(255,80,80,0.15);
+            border: 1px solid rgba(255,80,80,0.3);
+            border-radius: 10px;
+            padding: 1px 6px;
+            color: #ff8888;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .note-date-inline {
+            font-size: 10.5px;
+            color: #668899;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        @media (max-width: 480px) {
+            .note-date-inline { display: none; }
+        }
     </style>
 </head>
 <body class="theme-default">
@@ -2719,36 +2770,21 @@
 
         list.innerHTML=filtered.map(n=>{
             const typeIcon = n.type==='todo'?'✅':n.type==='reminder'?'🔔':'📝';
-            let bodyHtml='';
+            const todoCount = n.type==='todo' && n.todos
+                ? `<span class="note-todo-count">${n.todos.filter(t=>t.done).length}/${n.todos.length}</span>` : '';
+            const isOverdue = n.type==='reminder' && n.reminderTime && new Date(n.reminderTime)<new Date();
+            const overdueTag = isOverdue ? `<span class="note-overdue-tag">⚠️ মেয়াদোত্তীর্ণ</span>` : '';
 
-            if(n.type==='todo' && n.todos){
-                const done=n.todos.filter(t=>t.done).length;
-                bodyHtml=`<div style="font-size:12px;color:#aac8d8;margin-bottom:4px;">${done}/${n.todos.length} সম্পন্ন</div>
-                    ${n.todos.map((t,i)=>`
-                    <div class="todo-item ${t.done?'done':''}">
-                        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${n.id}',${i})">
-                        <span style="color:${t.done?'#668':'#eef5ff'};font-size:13px;">${t.text}</span>
-                    </div>`).join('')}`;
-            } else {
-                bodyHtml=`<div class="note-card-body">${(n.content||'').substring(0,200)}${(n.content||'').length>200?'...':''}</div>`;
-            }
-
-            let reminderHtml='';
-            if(n.type==='reminder' && n.reminderTime){
-                const rd=new Date(n.reminderTime);
-                const isOverdue=rd<new Date();
-                reminderHtml=`<div class="reminder-badge ${isOverdue?'overdue-badge':''}">🕐 ${rd.toLocaleString('bn-BD')}</div>`;
-            }
-
-            return `<div class="note-card type-${n.type}">
-                <div class="note-actions">
-                    <button class="note-action-btn" onclick="editNote('${n.id}')">✏️</button>
-                    <button class="note-action-btn" onclick="pinDeleteNote('${n.id}')" style="color:#ff8888;">🗑️</button>
+            return `<div class="note-card note-card-compact type-${n.type}" onclick="openNoteDetail('${n.id}')">
+                <div class="note-card-row">
+                    <span class="note-type-icon">${typeIcon}</span>
+                    <span class="note-card-title-inline">${n.title || '(শিরোনাম নেই)'}</span>
+                    ${todoCount}
+                    ${overdueTag}
+                    <span class="note-date-inline">${new Date(n.createdAt).toLocaleDateString('bn-BD')}</span>
+                    <button class="note-action-btn" onclick="event.stopPropagation();editNote('${n.id}')">✏️</button>
+                    <button class="note-action-btn" onclick="event.stopPropagation();pinDeleteNote('${n.id}')" style="color:#ff8888;">🗑️</button>
                 </div>
-                ${n.title?`<div class="note-card-title">${typeIcon} ${n.title}</div>`:''}
-                ${bodyHtml}
-                ${reminderHtml}
-                <div class="note-card-meta">${new Date(n.createdAt).toLocaleDateString('bn-BD')}</div>
             </div>`;
         }).join('');
     }
@@ -2851,6 +2887,64 @@
     }
 
     function pinDeleteNote(id){ showPin('notesDelete',id); }
+
+    // ===== NOTE DETAIL MODAL =====
+    function openNoteDetail(id) {
+        const n = notes.find(x => x.id === id);
+        if(!n) return;
+        const typeIcon = n.type==='todo' ? '✅' : n.type==='reminder' ? '🔔' : '📝';
+        document.getElementById('noteDetailTypeIcon').textContent = typeIcon;
+        document.getElementById('noteDetailTitle').textContent = n.title || '(শিরোনাম নেই)';
+
+        // Body content
+        let bodyHtml = '';
+        if(n.type === 'todo' && n.todos) {
+            const done = n.todos.filter(t=>t.done).length;
+            bodyHtml = `<div style="font-size:12px;color:#aac8d8;margin-bottom:8px;">${done}/${n.todos.length} সম্পন্ন</div>`;
+            n.todos.forEach((t,i) => {
+                bodyHtml += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${n.id}',${i});openNoteDetail('${n.id}')">
+                    <span style="color:${t.done?'#668':'#eef5ff'};font-size:13px;${t.done?'text-decoration:line-through;':''}">${t.text}</span>
+                </div>`;
+            });
+        } else {
+            bodyHtml = n.content || '(বিষয়বস্তু নেই)';
+        }
+        document.getElementById('noteDetailBody').innerHTML = bodyHtml;
+
+        // Reminder
+        let reminderHtml = '';
+        if(n.type === 'reminder' && n.reminderTime) {
+            const rd = new Date(n.reminderTime);
+            const isOverdue = rd < new Date();
+            reminderHtml = `<div class="reminder-badge ${isOverdue?'overdue-badge':''}">🕐 ${rd.toLocaleString('bn-BD')}${isOverdue?' (মেয়াদোত্তীর্ণ)':''}</div>`;
+        }
+        document.getElementById('noteDetailReminder').innerHTML = reminderHtml;
+
+        // Meta
+        document.getElementById('noteDetailMeta').textContent =
+            '📅 ' + new Date(n.createdAt).toLocaleString('bn-BD');
+
+        // Edit button
+        document.getElementById('noteDetailEditBtn').onclick = () => {
+            closeNoteDetail();
+            editNote(id);
+        };
+
+        const modal = document.getElementById('noteDetailModal');
+        modal.style.display = 'flex';
+        document.body.classList.add('modal-open');
+        window._noteDetailScrollY = window.scrollY;
+        document.body.style.top = `-${window.scrollY}px`;
+    }
+
+    function closeNoteDetail() {
+        document.getElementById('noteDetailModal').style.display = 'none';
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, window._noteDetailScrollY || 0);
+    }
+
     function deleteNote(id){ notes=notes.filter(n=>n.id!==id); saveNotes(); renderNotes(); }
 </script>
 <script>
@@ -3309,5 +3403,21 @@
     }
 </script>
 
+
+<!-- ===== NOTE DETAIL MODAL ===== -->
+<div id="noteDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:6000;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeNoteDetail()">
+    <div class="glass-card" style="max-width:480px;width:100%;padding:26px;max-height:85vh;overflow-y:auto;position:relative;border:1px solid rgba(0,242,192,0.3);">
+        <button onclick="closeNoteDetail()" style="position:absolute;top:14px;right:14px;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.3);border-radius:50%;width:30px;height:30px;color:#ff8888;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>
+        <div id="noteDetailTypeIcon" style="font-size:1.5rem;margin-bottom:8px;"></div>
+        <h3 id="noteDetailTitle" style="color:#f0f9ff;font-size:1.1rem;font-weight:700;margin-bottom:12px;padding-right:36px;"></h3>
+        <div id="noteDetailBody" style="color:#aac8d8;font-size:0.92rem;line-height:1.7;white-space:pre-wrap;"></div>
+        <div id="noteDetailReminder" style="margin-top:12px;"></div>
+        <div id="noteDetailMeta" style="margin-top:14px;font-size:11px;color:#668899;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;">
+            <button id="noteDetailEditBtn" style="flex:1;background:rgba(0,242,192,0.15);border:1px solid rgba(0,242,192,0.35);border-radius:12px;padding:9px;color:#00f2c0;cursor:pointer;font-size:13px;font-weight:600;">✏️ সম্পাদনা</button>
+            <button onclick="closeNoteDetail()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:9px;color:#8aaec0;cursor:pointer;font-size:13px;">বন্ধ করুন</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
