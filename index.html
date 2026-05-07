@@ -23,7 +23,7 @@
     <!-- Firebase -->
     <script type="module">
     import {initializeApp} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import {getFirestore,collection,doc,setDoc,getDocs,deleteDoc} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import {getFirestore,collection,doc,setDoc,getDocs,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const app=initializeApp({apiKey:"AIzaSyCCjpIIy97SX1jZg8_PTl-IUMCrIaKEZI4",authDomain:"masud-cyclesave.firebaseapp.com",projectId:"masud-cyclesave",storageBucket:"masud-cyclesave.firebasestorage.app",messagingSenderId:"731040057489",appId:"1:731040057489:web:abbb3ef2639868a0acd730"});
     const db=getFirestore(app);
 
@@ -203,41 +203,76 @@
       }
     };
 
-    window.addEventListener('load',async()=>{
+    // ===== REAL-TIME LISTENERS =====
+    let _rtCounts = {entries:0, gallery:0, notes:0, blog:0};
+    function _updateSyncStatus(){
+      document.getElementById('syncStatus').innerText=
+        '☁️ Live: '+_rtCounts.entries+'টি এন্ট্রি, '+_rtCounts.gallery+'টি ছবি, '+_rtCounts.notes+'টি নোট, '+_rtCounts.blog+'টি ব্লগ ✅';
+    }
+
+    window.addEventListener('load',()=>{
       document.getElementById('syncStatus').innerText='🔄 Firebase লোড হচ্ছে...';
-      const fbE=await window.fbLoadEntries();
-      if(fbE&&fbE.length>0){
-        localStorage.setItem('masud_cycle_entries',JSON.stringify(fbE));
-        if(typeof window._reloadEntries==='function') window._reloadEntries(fbE);
-        // Firebase entries load হওয়ার পরে milestone check — অন্য ডিভাইসে দেখানোর জন্য
-        setTimeout(()=>{
-          const totalKm = fbE.reduce((s,e)=>s+(e.km||0),0);
-          // _activeMilestone reset করি যাতে নতুন ডিভাইসেও দেখায়
-          if(typeof window._forceMilestoneCheck==='function') window._forceMilestoneCheck(totalKm);
-        }, 800);
-      }
-      const fbG=await window.fbLoadGallery();
-      if(fbG&&fbG.length>0){ if(typeof window._reloadGallery==='function') window._reloadGallery(fbG); }
-      const fbR=await window.fbLoadRoute();
-      if(fbR){ if(typeof window._reloadRoute==='function') window._reloadRoute(fbR); }
-      // Notes লোড
-      const fbN=await window.fbLoadNotes();
-      if(fbN&&fbN.length>0){ if(typeof window._reloadNotes==='function') window._reloadNotes(fbN); }
-      // Blog লোড
-      const fbBlog=await window.fbLoadBlogPosts();
-      if(fbBlog&&fbBlog.length>0){
-        // localStorage এ সরাসরি সেভ করি
-        localStorage.setItem('masud_blog_posts', JSON.stringify(fbBlog));
-        // _reloadBlogPosts ready থাকলে call করি, না হলে wait করি
-        if(typeof window._reloadBlogPosts==='function'){
-          window._reloadBlogPosts(fbBlog);
-        } else {
-          // DOM ready হওয়ার পরে retry
-          window._pendingBlogData = fbBlog;
+
+      // ---- Entries real-time ----
+      onSnapshot(collection(db,'entries'), snap => {
+        const fbE = []; snap.forEach(d => fbE.push(d.data()));
+        _rtCounts.entries = fbE.length;
+        if(fbE.length > 0){
+          localStorage.setItem('masud_cycle_entries', JSON.stringify(fbE));
+          if(typeof window._reloadEntries==='function') window._reloadEntries(fbE);
+          setTimeout(()=>{
+            const totalKm = fbE.reduce((s,e)=>s+(e.km||0),0);
+            if(typeof window._forceMilestoneCheck==='function') window._forceMilestoneCheck(totalKm);
+          }, 800);
         }
-      }
-      const ec=fbE?fbE.length:0,gc=fbG?fbG.length:0,nc=fbN?fbN.length:0,bc=fbBlog?fbBlog.length:0;
-      document.getElementById('syncStatus').innerText='☁️ Firebase: '+ec+'টি এন্ট্রি, '+gc+'টি ছবি, '+nc+'টি নোট, '+bc+'টি ব্লগ ✅';
+        _updateSyncStatus();
+      }, err => { console.error('entries listener:',err); });
+
+      // ---- Gallery real-time ----
+      onSnapshot(collection(db,'gallery'), snap => {
+        const fbG = []; snap.forEach(d => fbG.push(d.data()));
+        _rtCounts.gallery = fbG.length;
+        if(fbG.length > 0){ if(typeof window._reloadGallery==='function') window._reloadGallery(fbG); }
+        _updateSyncStatus();
+      }, err => { console.error('gallery listener:',err); });
+
+      // ---- Settings (route + notes) real-time ----
+      onSnapshot(collection(db,'settings'), snap => {
+        snap.forEach(d => {
+          if(d.id==='routeMap'){
+            const fbR = d.data();
+            if(fbR && typeof window._reloadRoute==='function') window._reloadRoute(fbR);
+          }
+          if(d.id==='notes'){
+            const fbN = d.data()?.list || [];
+            _rtCounts.notes = fbN.length;
+            if(fbN.length > 0 && typeof window._reloadNotes==='function') window._reloadNotes(fbN);
+          }
+        });
+        _updateSyncStatus();
+      }, err => { console.error('settings listener:',err); });
+
+      // ---- Blog real-time ----
+      onSnapshot(collection(db,'blog'), async snap => {
+        try {
+          const posts = [];
+          snap.forEach(d => posts.push(d.data()));
+          const imgSnap = await getDocs(collection(db,'blog_images'));
+          const imgMap = {};
+          imgSnap.forEach(d => { imgMap[d.id] = d.data(); });
+          posts.forEach(p => { if(imgMap[p.id]) p.coverImage = imgMap[p.id].coverImage; });
+          _rtCounts.blog = posts.length;
+          if(posts.length > 0){
+            localStorage.setItem('masud_blog_posts', JSON.stringify(posts));
+            if(typeof window._reloadBlogPosts==='function'){
+              window._reloadBlogPosts(posts);
+            } else {
+              window._pendingBlogData = posts;
+            }
+          }
+          _updateSyncStatus();
+        } catch(e){ console.error('blog snapshot:',e); }
+      }, err => { console.error('blog listener:',err); });
     });
     </script>
     <style>
